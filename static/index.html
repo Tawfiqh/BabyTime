@@ -59,6 +59,9 @@
     .card.viewer { border-color: #2a3a5a; }
     .card.viewer:hover { background: #1a1a2a; border-color: #4a6a9a; }
 
+    .card.slowviewer { border-color: #3a3a5a; }
+    .card.slowviewer:hover { background: #1a1a2a; border-color: #5a5a9a; }
+
     .footer {
       margin-top: 3rem;
       font-size: 0.78rem;
@@ -86,6 +89,11 @@
       <div class="card-title">Viewer</div>
       <div class="card-desc">Watch the camera feed from wherever you are in the house</div>
     </div>
+    <div class="card slowviewer" onclick="selectRole('slowviewer')">
+      <div class="card-icon">📱</div>
+      <div class="card-title">Slow Viewer</div>
+      <div class="card-desc">Watch periodic snapshots with audio levels</div>
+    </div>
   </div>
 
   <div class="footer">
@@ -95,7 +103,7 @@
   <script>
     // If a role was already chosen, redirect immediately.
     const saved = localStorage.getItem('babyTimeRole');
-    if (saved === 'camera' || saved === 'viewer') {
+    if (saved === 'camera' || saved === 'viewer' || saved === 'slowviewer') {
       window.location.replace('/' + saved + '.html');
     }
 

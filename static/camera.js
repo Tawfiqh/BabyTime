@@ -13,6 +13,7 @@ let micEnabled = true;
 let reconnectTimer = null;
 let viewerPollTimer = null;
 let audioVisualizer = null;
+let snapshotTimer = null;
 
 function setStatus(state, text) {
     dot.className = state;
@@ -60,6 +61,7 @@ function connectWebSocket() {
         setStatus('live', 'Live — streaming');
         startRecorder();
         initAudioMeter();
+        startSnapshotCapture();
         pollViewerCount(); // disabled for now as it fills up the logs
     };
 
@@ -67,6 +69,7 @@ function connectWebSocket() {
         stopRecorder();
         stopAudioMeter();
         clearInterval(viewerPollTimer);
+        clearInterval(snapshotTimer);
         setStatus('error', 'Disconnected — reconnecting…');
         viewerCount.textContent = '';
         reconnectTimer = setTimeout(connectWebSocket, 3000);
@@ -102,6 +105,44 @@ function stopRecorder() {
     recorder = null;
 }
 
+async function capturePeriodicSnapshot() {
+    if (!stream || !preview || !audioVisualizer) return;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = preview.videoWidth || 320;
+    canvas.height = preview.videoHeight || 240;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(preview, 0, 0);
+    const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+
+    if (audioVisualizer?.analyser) {
+        const dataArray = new Uint8Array(audioVisualizer.analyser.frequencyBinCount);
+        audioVisualizer.analyser.getByteFrequencyData(dataArray);
+
+        const rms = Math.sqrt(dataArray.reduce((sum, v) => sum + v * v) / dataArray.length);
+        const peak = Math.max(...dataArray);
+
+        try {
+            await fetch('/api/camera/snapshot', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    image: jpegDataUrl,
+                    audioRms: Math.round(rms),
+                    audioPeak: peak,
+                }),
+            });
+        } catch (err) {
+            console.warn('[camera.js] Snapshot capture failed:', err);
+        }
+    }
+}
+
+function startSnapshotCapture() {
+    clearInterval(snapshotTimer);
+    snapshotTimer = setInterval(capturePeriodicSnapshot, 5000);
+}
+
 async function pollViewerCount() {
     clearInterval(viewerPollTimer);
     viewerPollTimer = setInterval(async () => {
@@ -131,20 +172,36 @@ function switchRole() {
 }
 
 function initAudioMeter() {
+    console.log('[camera.js] initAudioMeter called');
+    console.log('[camera.js] stream exists:', !!stream);
+    console.log('[camera.js] soundBarsContainer exists:', !!soundBarsContainer);
+
     try {
         if (!audioVisualizer) {
+            console.log('[camera.js] Creating new AudioVisualizer');
             audioVisualizer = new AudioVisualizer(stream, soundBarsContainer);
+            console.log('[camera.js] AudioVisualizer instance created');
+        } else {
+            console.log('[camera.js] AudioVisualizer already exists');
         }
+        console.log('[camera.js] Calling audioVisualizer.start()');
         audioVisualizer.start();
+        console.log('[camera.js] audioVisualizer.start() completed');
     } catch (err) {
+        console.error('[camera.js] Audio meter initialization failed:', err);
         console.warn('Audio meter not available:', err);
     }
 }
 
 function stopAudioMeter() {
+    console.log('[camera.js] stopAudioMeter called');
     if (audioVisualizer) {
+        console.log('[camera.js] Stopping audioVisualizer');
         audioVisualizer.stop();
         audioVisualizer = null;
+        console.log('[camera.js] audioVisualizer stopped and cleared');
+    } else {
+        console.log('[camera.js] audioVisualizer is null, nothing to stop');
     }
 }
 

@@ -1,9 +1,10 @@
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -16,6 +17,10 @@ viewer_connections: list = []
 # First chunk from camera contains the fMP4 init segment (moov box).
 # Sent to viewers who join after streaming has started so they can decode.
 init_chunk: Optional[bytes] = None
+
+# Slow viewer snapshot storage
+latest_snapshot: Optional[dict] = None  # {"image": base64_string, "timestamp": ISO8601}
+latest_audio_level: Optional[dict] = None  # {"rms": int, "peak": int, "timestamp": ISO8601}
 
 
 # ── WebSocket: Camera ──────────────────────────────────────────────────────────
@@ -73,6 +78,37 @@ async def status():
         "camera_connected": camera_ws is not None,
         "viewer_count": len(viewer_connections),
     }
+
+
+# ── Slow Viewer API ────────────────────────────────────────────────────────────
+
+@app.post("/api/camera/snapshot")
+async def save_snapshot(data: dict):
+    global latest_snapshot, latest_audio_level
+    latest_snapshot = {
+        "image": data.get("image"),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    latest_audio_level = {
+        "rms": data.get("audioRms"),
+        "peak": data.get("audioPeak"),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    return {"status": "ok"}
+
+
+@app.get("/api/camera/snapshot")
+async def get_snapshot():
+    if latest_snapshot is None:
+        raise HTTPException(status_code=404, detail="No snapshot available")
+    return latest_snapshot
+
+
+@app.get("/api/camera/audio-level")
+async def get_audio_level():
+    if latest_audio_level is None:
+        raise HTTPException(status_code=404, detail="No audio level available")
+    return latest_audio_level
 
 
 # ── CA Certificate Download ────────────────────────────────────────────────────

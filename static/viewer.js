@@ -221,11 +221,11 @@ function seekToLatestBufferedRange() {
   const liveRangeEnd = sourceBuffer.buffered.end(n - 1);
 
   // Seek aggressively: aim for 2 seconds before live edge (max 5s delay)
-  const maxSeekBehind = 2;
+  const maxSeekBehind = 5;
   const targetSeekTime = Math.max(liveRangeStart, liveRangeEnd - maxSeekBehind);
 
   // Seek if we're more than 5 seconds behind live edge or outside range entirely
-  const maxAllowedDelay = 5;
+  const maxAllowedDelay = 10;
   const isFarBehind = liveRangeEnd - video.currentTime > maxAllowedDelay;
   const inLiveRange = video.currentTime >= liveRangeStart && video.currentTime <= liveRangeEnd;
 
@@ -234,6 +234,8 @@ function seekToLatestBufferedRange() {
     video.currentTime = targetSeekTime;
   }
   hasSeekedToLive = true;
+  // if (video.paused) video.play().catch(e => console.warn('[MSE] play() failed:', e));
+
 }
 
 function flushQueue() {
@@ -353,20 +355,44 @@ function switchRole() {
 // Audio Meter
 // ==============================
 function initAudioMeter() {
+  console.log('[viewer.js] initAudioMeter called');
+  console.log('[viewer.js] video element:', {
+    exists: !!video,
+    src: video?.src,
+    currentTime: video?.currentTime,
+    duration: video?.duration,
+    readyState: video?.readyState,
+    networkState: video?.networkState,
+    paused: video?.paused
+  });
+  console.log('[viewer.js] soundBarsContainer exists:', !!soundBarsContainer);
+
   try {
     if (!audioVisualizer) {
+      console.log('[viewer.js] Creating new AudioVisualizer');
       audioVisualizer = new AudioVisualizer(video, soundBarsContainer);
+      console.log('[viewer.js] AudioVisualizer instance created');
+    } else {
+      console.log('[viewer.js] AudioVisualizer already exists');
     }
+    console.log('[viewer.js] Calling audioVisualizer.start()');
     audioVisualizer.start();
+    console.log('[viewer.js] audioVisualizer.start() completed');
   } catch (err) {
+    console.error('[viewer.js] Audio meter initialization failed:', err);
     console.warn('Audio meter not available:', err);
   }
 }
 
 function stopAudioMeter() {
+  console.log('[viewer.js] stopAudioMeter called');
   if (audioVisualizer) {
+    console.log('[viewer.js] Stopping audioVisualizer');
     audioVisualizer.stop();
     audioVisualizer = null;
+    console.log('[viewer.js] audioVisualizer stopped and cleared');
+  } else {
+    console.log('[viewer.js] audioVisualizer is null, nothing to stop');
   }
 }
 

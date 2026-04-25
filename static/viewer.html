@@ -109,7 +109,7 @@
 </head>
 
 <body>
-  <h1> Viewer Mode 📺</h1>
+  <h1> BabyTime</h1>
 
 
   <div id="preview-container">
@@ -122,7 +122,9 @@
     </div>
 
 
-    <video id="stream" playsinline disableRemotePlayback=true>
+    <video id="stream" autoplay playsinline disableRemotePlayback=true muted>
+      <!-- disble remote playback is required for iOS to send the video start event -->
+      <!-- Muted is required for autiplay -->
     </video>
   </div>
 
@@ -144,8 +146,8 @@
   </div>
 
   <!-- Bump ?v= when these scripts change to force cache invalidation. -->
-  <script src="/audioVisualizer.js?v=2"></script>
-  <script src="/viewer.js?v=3.0"></script>
+  <script src="/audioVisualizer.js?v=2.1"></script>
+  <script src="/viewer.js?v=3.1"></script>
 </body>
 
 </html>

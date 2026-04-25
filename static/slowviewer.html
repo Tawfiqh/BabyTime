@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>BabyTime – Slow Viewer</title>
+  <link rel="stylesheet" href="base.css?v=1">
+  <style>
+    #slow-viewer-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      padding: 2rem 1.5rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    #snapshot-image {
+      width: 100%;
+      border-radius: 1rem;
+      background: #1a1a24;
+      display: none;
+    }
+
+    #snapshot-timestamp {
+      font-size: 0.75rem;
+      color: #888;
+      text-align: center;
+    }
+
+    .audio-level-display {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      margin-top: 1rem;
+    }
+
+    .audio-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .audio-bar-label {
+      width: 40px;
+      font-size: 0.85rem;
+      color: #aaa;
+      font-weight: 500;
+    }
+
+    .audio-bar-container {
+      flex: 1;
+      height: 2rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 0.25rem;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .audio-bar-fill {
+      height: 100%;
+      background: linear-gradient(to right, #4caf50, #ffc107, #ff6b6b);
+      transition: width 0.2s ease-out;
+    }
+
+    .audio-bar-value {
+      width: 35px;
+      text-align: right;
+      font-size: 0.85rem;
+      color: #ddd;
+      font-weight: 500;
+    }
+
+    #fetch-status {
+      font-size: 0.8rem;
+      text-align: center;
+      color: #888;
+      margin-top: 1rem;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>📱 Slow Viewer</h1>
+
+  <div id="slow-viewer-container">
+    <div id="hud">
+      <div id="status-dot" class="connecting"></div>
+      <div id="status-text">Connecting…</div>
+    </div>
+
+    <img id="snapshot-image" alt="Latest snapshot">
+    <div id="snapshot-timestamp"></div>
+
+    <div class="audio-level-display">
+      <div class="audio-bar">
+        <div class="audio-bar-label">RMS</div>
+        <div class="audio-bar-container">
+          <div class="audio-bar-fill" id="rms-bar" style="width: 0%"></div>
+        </div>
+        <div class="audio-bar-value" id="rms-value">0</div>
+      </div>
+      <div class="audio-bar">
+        <div class="audio-bar-label">Peak</div>
+        <div class="audio-bar-container">
+          <div class="audio-bar-fill" id="peak-bar" style="width: 0%"></div>
+        </div>
+        <div class="audio-bar-value" id="peak-value">0</div>
+      </div>
+    </div>
+
+    <div id="fetch-status">Updated: never</div>
+  </div>
+
+  <div id="controls">
+    <button onclick="switchRole()">Switch role</button>
+  </div>
+
+  <script src="/slowviewer.js?v=1"></script>
+</body>
+</html>
