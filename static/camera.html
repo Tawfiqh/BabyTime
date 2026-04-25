@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>BabyTime – Camera</title>
+  <style>
+    @import "base.css";
+  </style>
+</head>
+
+<body>
+
+  <div id="preview-container">
+    <div id="hud">
+      <div id="status-dot" class="connecting"></div>
+      <div id="status-text">Starting camera…</div>
+      <div id="viewer-count"></div>
+      <div id="sound-meter">
+        <div class="sound-bars" id="sound-bars"></div>
+      </div>
+
+    </div>
+
+    <video id="preview" autoplay playsinline muted></video>
+  </div>
+
+
+  <div id="controls">
+    <button onclick="toggleMic()">🎤 Mute mic</button>
+    <button onclick="switchRole()">Switch role</button>
+  </div>
+
+  <div id="error-box">
+    <div id="error-title">Camera Error</div>
+    <div id="error-msg"></div>
+    <a href="/setup.html">Certificate not trusted? Set up this device →</a>
+  </div>
+
+  <script>
+
+  </script>
+
+  <!-- Bump ?v= when these scripts change to force cache invalidation. -->
+  <script src="/audioVisualizer.js?v=3"></script>
+  <script src="/camera.js?v=1.2"></script>
+
+</body>
+
+</html>

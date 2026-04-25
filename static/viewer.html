@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>BabyTime – Viewer</title>
+  <style>
+    @import "base.css";
+  </style>
+
+  <style>
+    #overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      pointer-events: none;
+    }
+
+    #overlay-icon {
+      font-size: 3rem;
+    }
+
+    #overlay-msg {
+      font-size: 1rem;
+      color: #888;
+      text-align: center;
+      padding: 0 2rem;
+    }
+
+    #overlay.hidden {
+      display: none;
+    }
+
+    #unmute-btn {
+      display: none;
+    }
+
+    #unmute-btn.visible {
+      display: block;
+    }
+
+    #mimeSupportPanel {
+      position: fixed;
+      bottom: 5rem;
+      left: 1rem;
+      right: 1rem;
+      max-width: 36rem;
+      margin: 0 auto;
+      padding: 0.5rem 0.65rem;
+      background: rgba(12, 12, 16, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 0.5rem;
+      font-size: 0.7rem;
+      line-height: 1.35;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    #mimeSupportPanel h2 {
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #888;
+      margin-bottom: 0.35rem;
+    }
+
+    #mime-support-list {
+      list-style: none;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    #mime-support-list li {
+      display: flex;
+      gap: 0.5rem;
+      align-items: baseline;
+      padding: 0.15rem 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    #mime-support-list li:first-child {
+      border-top: none;
+    }
+
+    .mime-flag {
+      flex-shrink: 0;
+      width: 2.5rem;
+      font-weight: 600;
+    }
+
+    .mime-flag.true {
+      color: #81c784;
+    }
+
+    .mime-flag.false {
+      color: #e57373;
+    }
+
+    .mime-type {
+      color: #b0bec5;
+      word-break: break-all;
+    }
+  </style>
+</head>
+
+<body>
+  <h1> Viewer Mode 📺</h1>
+
+
+  <div id="preview-container">
+    <div id="hud">
+      <div id="status-dot" class="connecting"></div>
+      <div id="status-text">Connecting…</div>
+      <div id="sound-meter">
+        <div class="sound-bars" id="sound-bars"></div>
+      </div>
+    </div>
+
+
+    <video id="stream" playsinline disableRemotePlayback=true>
+    </video>
+  </div>
+
+
+  <div id="overlay">
+    <div id="overlay-icon">👶</div>
+    <div id="overlay-msg">Waiting for camera…</div>
+  </div>
+
+
+  <div id="controls">
+    <button id="unmute-btn" onclick="unmute()">🔊 Tap to unmute</button>
+    <button onclick="switchRole()">Switch role</button>
+  </div>
+
+  <div id="mimeSupportPanel" aria-label="ManagedMediaSource MIME type support" style="display: none;">
+    <h2>ManagedMediaSource.isTypeSupported</h2>
+    <ul id="mime-support-list"></ul>
+  </div>
+
+  <!-- Bump ?v= when these scripts change to force cache invalidation. -->
+  <script src="/audioVisualizer.js?v=2"></script>
+  <script src="/viewer.js?v=3.0"></script>
+</body>
+
+</html>
