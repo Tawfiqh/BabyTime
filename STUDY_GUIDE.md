@@ -33,8 +33,9 @@ A self-hosted baby monitor web app. A MacBook runs a Python server on the home W
 
 - **Chosen**: `mkcert` creates a locally-trusted CA that devices can opt into trusting.
 - **Alternative**: Self-signed cert — browser shows an error that cannot be bypassed for `getUserMedia` on iOS.
-- **Why this**: iOS Safari requires HTTPS or `localhost` to allow camera/mic access. mkcert creates a cert that iOS can actually trust.
+- **Why this**: iOS Safari requires HTTPS or `localhost` to allow camera/mic access. mkcert creates a cert that iOS can actually trust. We include both the WiFi IP and the Mac Bonjour hostname (`<Computer-Name>.local`) so devices can connect with a stable local name.
 - **Tradeoff**: One-time setup per iOS device (profile install + trust toggle in Settings).
+- **Analogy**: Like saving a friend's contact by name instead of memorizing a phone number that might change.
 
 ### Python FastAPI over Node.js
 
@@ -100,6 +101,7 @@ Checks `localStorage` for a saved role. If found, redirects immediately. Otherwi
 
 - **Old iOS devices on iOS < 14.3**: `MediaRecorder` is not available, so they cannot be cameras. Viewers need `ManagedMediaSource` (iOS Safari 17.2+) or standard `MediaSource` (desktop browsers).
 - **IP address changes**: If the router assigns a new IP to the MacBook, the mkcert cert needs to be regenerated with the new IP.
+- **Bonjour dependence**: `.local` hostnames depend on Bonjour/mDNS on the network. Some guest networks or isolated VLANs may block this discovery traffic.
 - **Multiple cameras**: The current design supports one camera at a time. A second `register-camera` event would overwrite the first.
 - **Buffer growth**: The viewer's `SourceBuffer` grows indefinitely. On long sessions this may cause memory pressure on old iPads. Solution (not yet implemented): periodically call `sourceBuffer.remove()` to trim old data.
 - **Latency spikes**: If the WiFi is congested, chunks queue up and latency increases. There's no mechanism to drop old chunks and snap to live.
