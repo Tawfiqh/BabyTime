@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>BabyTime – Slow Viewer</title>
+  <title>{{ baby_name }} – Slow Viewer</title>
   <link rel="stylesheet" href="base.css?v=1">
   <style>
     #slow-viewer-container {
@@ -85,7 +85,7 @@
   </style>
 </head>
 <body>
-  <h1>📱 Slow Viewer</h1>
+  {% include 'menubar.html' %}
 
   <div id="slow-viewer-container">
     <div id="hud">
@@ -114,10 +114,6 @@
     </div>
 
     <div id="fetch-status">Updated: never</div>
-  </div>
-
-  <div id="controls">
-    <button onclick="switchRole()">Switch role</button>
   </div>
 
   <script src="/slowviewer.js?v=1"></script>

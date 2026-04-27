@@ -1,0 +1,11 @@
+<div class="menubar">
+  <div class="menubar-title">{{ baby_name }}</div>
+  <button class="menubar-home-btn" onclick="goHome()">🏠</button>
+</div>
+
+<script>
+  function goHome() {
+    localStorage.removeItem('babyTimeRole');
+    window.location.href = '/';
+  }
+</script>

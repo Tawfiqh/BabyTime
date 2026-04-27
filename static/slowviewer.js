@@ -64,11 +64,4 @@ async function pollData() {
   }, 5000);
 }
 
-function switchRole() {
-  if (confirm('Switch this device to Camera?')) {
-    localStorage.setItem('babyTimeRole', 'camera');
-    window.location.href = '/camera.html';
-  }
-}
-
 pollData();

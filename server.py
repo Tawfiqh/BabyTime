@@ -1,14 +1,22 @@
+import os
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 app = FastAPI()
+
+# Read baby name from environment variable
+baby_name = os.getenv("BABY_NAME", "BabyTime")
+
+# Set up Jinja2 templating
+templates = Jinja2Templates(directory="static")
 
 # ── State ──────────────────────────────────────────────────────────────────────
 
@@ -127,6 +135,29 @@ async def serve_ca_cert():
         )
     except FileNotFoundError:
         return HTMLResponse("mkcert not installed. Run: brew install mkcert && mkcert -install", status_code=500)
+
+
+# ── HTML Page Routes (render with Jinja2) ──────────────────────────────────────
+
+@app.get("/")
+async def index(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request, "baby_name": baby_name})
+
+@app.get("/viewer.html")
+async def viewer(request: Request):
+    return templates.TemplateResponse("viewer.html", {"request": request, "baby_name": baby_name})
+
+@app.get("/camera.html")
+async def camera(request: Request):
+    return templates.TemplateResponse("camera.html", {"request": request, "baby_name": baby_name})
+
+@app.get("/slowviewer.html")
+async def slowviewer(request: Request):
+    return templates.TemplateResponse("slowviewer.html", {"request": request, "baby_name": baby_name})
+
+@app.get("/setup.html")
+async def setup(request: Request):
+    return templates.TemplateResponse("setup.html", {"request": request, "baby_name": baby_name})
 
 
 # ── Static Files ───────────────────────────────────────────────────────────────
