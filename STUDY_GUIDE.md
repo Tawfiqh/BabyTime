@@ -19,7 +19,7 @@ A self-hosted baby monitor web app. A MacBook runs a Python server on the home W
 
 ### Optional: global `babytime` command (from a git clone)
 
-1. Run `./build-and-run.sh` in the repo. It prints a few lines (whether `babytime` is already symlinked, PATH hint if needed), then starts the server like `run.sh`. Use flags when you want to install the link: `--install-user`, `--install-system`, `--add-to-path` (see `./build-and-run.sh --help`).
+1. Run `./build-and-run.sh` in the repo. With an interactive terminal it prints status, then a short numbered list (no full-screen UI): **1** symlink to `~/.local/bin` then run (optional PATH prompt), **2** symlink to `/usr/local/bin` then run, **3** run from the clone only (default), **4** exit. Without a TTY or when you pass flags, it skips the menu. Flags: `--install-user`, `--install-system`, `--add-to-path` (see `./build-and-run.sh --help`).
 2. `bin/babytime` is a tiny script that `exec`s the repo’s `run.sh`, so the symlink always points at the clone (not at a Python binary inside `.venv`).
 3. **Best practice for “where to symlink”**: prefer **`~/.local/bin`** (user-level, no root). It matches how many tools (uv, pip, cargo) expect user installs. Use **`/usr/local/bin`** only when you want the command for every user on the machine and accept `sudo`.
 4. **PATH**: many Linux desktops already put `~/.local/bin` on `PATH`; macOS often does not. Pass `--add-to-path` to append a small guarded block to `~/.zshrc` or `~/.bashrc`, or add `export PATH="$HOME/.local/bin:$PATH"` once yourself.
@@ -79,9 +79,9 @@ A self-hosted baby monitor web app. A MacBook runs a Python server on the home W
 
 ### build-and-run.sh and bin/babytime
 
-**build-and-run.sh** prints symlink status for `babytime` in `~/.local/bin` and `/usr/local/bin`, optional PATH notes, then runs `run.sh`. Install the global command with flags, for example `./build-and-run.sh --install-user --add-to-path` once, then use `babytime` from any directory. **bin/babytime** only `cd`s to the repo root and runs `run.sh`.
+**build-and-run.sh** prints symlink status, then either a small **1–4** menu (interactive TTY, no flags) or goes straight through when stdin is not a TTY or when you pass `--install-user` / `--install-system` / `--add-to-path`. Then it runs `run.sh`. **bin/babytime** only `cd`s to the repo root and runs `run.sh`.
 
-Example: `./build-and-run.sh --install-user` → new terminal (with `~/.local/bin` on PATH) → `babytime` → HTTPS server starts.
+Example: `./build-and-run.sh` → choose **1** → confirm PATH → new terminal → `babytime`. Or once: `./build-and-run.sh --install-user --add-to-path`.
 
 ### server.py
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # BabyTime — build (deps) and run. Optionally install a global `babytime` symlink.
 # Prefer ~/.local/bin (no sudo). /usr/local/bin is optional for shared machines.
+# With a TTY and no flags, prints a short numbered list (no clear / full-screen UI).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -114,13 +115,84 @@ append_path_block() {
   printf '  Open a new terminal or: %ssource %s%s\n' "$BOLD" "$shell_rc" "$RST"
 }
 
+offer_path_prompt() {
+  local shell_rc ans ans_lc
+  shell_rc="$(default_shell_rc)"
+  printf '\n'
+  if [[ ! -t 0 ]]; then
+    printf '%s(non-interactive: not editing shell rc; add PATH yourself if needed)%s\n' "$DIM" "$RST"
+    return 0
+  fi
+  read -r -p "Append ~/.local/bin to PATH in ${shell_rc}? [y/N] " ans
+  ans_lc="$(printf '%s' "$ans" | tr '[:upper:]' '[:lower:]')"
+  if [[ "$ans_lc" == "y" || "$ans_lc" == "yes" ]]; then
+    append_path_block "$shell_rc"
+  else
+    printf '%sSkipped. You can add later: export PATH="$HOME/.local/bin:$PATH"%s\n' "$DIM" "$RST"
+  fi
+}
+
+print_status() {
+  printf '\n%sBabyTime%s  repo: %s\n' "$BOLD" "$RST" "$ROOT"
+  if any_symlink_ok; then
+    printf '  %s%s is symlinked to this repo.%s\n' "$GRN" "$LINK_NAME" "$RST"
+  else
+    printf '  %sNo %s symlink yet in ~/.local/bin or /usr/local/bin.%s\n' "$YLW" "$LINK_NAME" "$RST"
+    printf '  %sOr use flags:%s ./build-and-run.sh --install-user [--add-to-path]%s\n' "$DIM" "$BOLD" "$RST"
+  fi
+
+  if ! path_has_user_bin && ! path_has_system_local; then
+    printf '  %sNote:%s ~/.local/bin and /usr/local/bin are not on PATH for this shell.\n' "$YLW" "$RST"
+    printf '        Add once: %sexport PATH="$HOME/.local/bin:$PATH"%s\n' "$BOLD" "$RST"
+  fi
+}
+
+interactive_menu() {
+  print_status
+  printf '\n%sChoose:%s\n' "$BOLD" "$RST"
+  printf '  1) Symlink to ~/.local/bin, then run (asks about PATH)\n'
+  printf '  2) Symlink to /usr/local/bin (sudo), then run\n'
+  printf '  3) Run from this clone (install deps if needed)\n'
+  printf '  4) Exit\n\n'
+  local choice
+  read -r -p "Enter 1-4 [default: 3]: " choice
+  choice="${choice:-3}"
+  case "$choice" in
+    1)
+      install_symlink "$USER_BIN"
+      printf '%sInstalled %s -> %s%s\n' "$GRN" "$USER_BIN/$LINK_NAME" "$LAUNCHER" "$RST"
+      offer_path_prompt
+      ;;
+    2)
+      if [[ -w "$SYSTEM_LOCAL" ]] 2>/dev/null; then
+        install_symlink "$SYSTEM_LOCAL"
+      else
+        printf '%sInstalling to %s (sudo)...%s\n' "$DIM" "$SYSTEM_LOCAL" "$RST"
+        sudo mkdir -p "$SYSTEM_LOCAL"
+        sudo ln -sf "$LAUNCHER" "$SYSTEM_LOCAL/$LINK_NAME"
+        sudo chmod +x "$LAUNCHER" 2>/dev/null || true
+      fi
+      printf '%sInstalled %s -> %s%s\n' "$GRN" "$SYSTEM_LOCAL/$LINK_NAME" "$LAUNCHER" "$RST"
+      if ! path_has_user_bin && ! path_has_system_local; then
+        printf '%sNeither ~/.local/bin nor /usr/local/bin is on PATH for this shell.%s\n' "$YLW" "$RST"
+        printf '  Try: %sexport PATH="/usr/local/bin:$PATH"%s\n' "$BOLD" "$RST"
+      fi
+      ;;
+    3) ;;
+    4) exit 0 ;;
+    *)
+      printf '%sUnknown choice — running from this clone.%s\n' "$YLW" "$RST"
+      ;;
+  esac
+}
+
 usage() {
   cat >&2 <<'EOF'
 BabyTime — build (deps) and run. Optionally install a global `babytime` symlink.
 
 Usage: ./build-and-run.sh [options]
 
-  Default: print symlink status, then start the server (same as run.sh).
+  With a TTY and no options: short numbered menu, then start (see script header).
 
   --install-user        Symlink babytime -> ~/.local/bin (no sudo)
   --install-system      Symlink babytime -> /usr/local/bin (sudo if needed)
@@ -175,44 +247,41 @@ done
 
 ensure_launcher_executable
 
-if (( INSTALL_USER && INSTALL_SYSTEM )); then
-  echo "Use only one of --install-user or --install-system." >&2
-  exit 1
-fi
+FLAG_MODE=0
+(( INSTALL_USER || INSTALL_SYSTEM || ADD_TO_PATH )) && FLAG_MODE=1
 
-if (( INSTALL_USER )); then
-  install_symlink "$USER_BIN"
-  printf '%sInstalled %s -> %s%s\n' "$GRN" "$USER_BIN/$LINK_NAME" "$LAUNCHER" "$RST"
-fi
-
-if (( INSTALL_SYSTEM )); then
-  if [[ -w "$SYSTEM_LOCAL" ]] 2>/dev/null; then
-    install_symlink "$SYSTEM_LOCAL"
-  else
-    printf '%sInstalling to %s (sudo)...%s\n' "$DIM" "$SYSTEM_LOCAL" "$RST"
-    sudo mkdir -p "$SYSTEM_LOCAL"
-    sudo ln -sf "$LAUNCHER" "$SYSTEM_LOCAL/$LINK_NAME"
-    sudo chmod +x "$LAUNCHER" 2>/dev/null || true
+if (( FLAG_MODE )); then
+  if (( INSTALL_USER && INSTALL_SYSTEM )); then
+    echo "Use only one of --install-user or --install-system." >&2
+    exit 1
   fi
-  printf '%sInstalled %s -> %s%s\n' "$GRN" "$SYSTEM_LOCAL/$LINK_NAME" "$LAUNCHER" "$RST"
-fi
 
-if (( ADD_TO_PATH )); then
-  append_path_block "${PATH_RC:-}"
-fi
+  if (( INSTALL_USER )); then
+    install_symlink "$USER_BIN"
+    printf '%sInstalled %s -> %s%s\n' "$GRN" "$USER_BIN/$LINK_NAME" "$LAUNCHER" "$RST"
+  fi
 
-printf '\n%sBabyTime%s  repo: %s\n' "$BOLD" "$RST" "$ROOT"
-if any_symlink_ok; then
-  printf '  %s%s is symlinked to this repo.%s\n' "$GRN" "$LINK_NAME" "$RST"
+  if (( INSTALL_SYSTEM )); then
+    if [[ -w "$SYSTEM_LOCAL" ]] 2>/dev/null; then
+      install_symlink "$SYSTEM_LOCAL"
+    else
+      printf '%sInstalling to %s (sudo)...%s\n' "$DIM" "$SYSTEM_LOCAL" "$RST"
+      sudo mkdir -p "$SYSTEM_LOCAL"
+      sudo ln -sf "$LAUNCHER" "$SYSTEM_LOCAL/$LINK_NAME"
+      sudo chmod +x "$LAUNCHER" 2>/dev/null || true
+    fi
+    printf '%sInstalled %s -> %s%s\n' "$GRN" "$SYSTEM_LOCAL/$LINK_NAME" "$LAUNCHER" "$RST"
+  fi
+
+  if (( ADD_TO_PATH )); then
+    append_path_block "${PATH_RC:-}"
+  fi
+
+  print_status
+elif [[ -t 0 ]]; then
+  interactive_menu
 else
-  printf '  %sNo %s symlink yet in ~/.local/bin or /usr/local/bin.%s\n' "$YLW" "$LINK_NAME" "$RST"
-  printf '  %sInstall:%s ./build-and-run.sh --install-user\n' "$DIM" "$RST"
-  printf '          %s./build-and-run.sh --install-user --add-to-path%s\n' "$DIM" "$RST"
-fi
-
-if ! path_has_user_bin && ! path_has_system_local; then
-  printf '  %sNote:%s ~/.local/bin and /usr/local/bin are not on PATH for this shell.\n' "$YLW" "$RST"
-  printf '        Add once: %sexport PATH="$HOME/.local/bin:$PATH"%s\n' "$BOLD" "$RST"
+  print_status
 fi
 
 printf '\n%sStarting…%s\n\n' "$BOLD" "$RST"
