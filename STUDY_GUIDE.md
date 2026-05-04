@@ -17,6 +17,13 @@ A self-hosted baby monitor web app. A MacBook runs a Python server on the home W
 7. Viewer devices open the same URL, choose "Viewer".
 8. Their browser connects via WebSocket, receives the binary chunks, and feeds them into the `ManagedMediaSource` API — the `<video>` element plays the live stream.
 
+### Optional: global `babytime` command (from a git clone)
+
+1. Run `./build-and-run.sh` in the repo. It prints a short text menu: run in place, symlink the launcher to `~/.local/bin/babytime`, or symlink to `/usr/local/bin/babytime` (sudo if that directory is not writable).
+2. `bin/babytime` is a tiny script that `exec`s the repo’s `run.sh`, so the symlink always points at the clone (not at a Python binary inside `.venv`).
+3. **Best practice for “where to symlink”**: prefer **`~/.local/bin`** (user-level, no root). It matches how many tools (uv, pip, cargo) expect user installs. Use **`/usr/local/bin`** only when you want the command for every user on the machine and accept `sudo`.
+4. **PATH**: many Linux desktops already put `~/.local/bin` on `PATH`; macOS often does not. The script can optionally append a small guarded block to `~/.zshrc` or `~/.bashrc` so new terminals find `babytime`.
+
 ---
 
 ## Key Decisions & Why
@@ -44,6 +51,14 @@ A self-hosted baby monitor web app. A MacBook runs a Python server on the home W
 - **Why this**: User preference for Python; FastAPI has native async WebSocket support; fits the project's existing Python tooling.
 - **Tradeoff**: Slightly more ceremony for WebSockets vs. Socket.IO, but no meaningful difference for this use case.
 
+### User-level symlink (`~/.local/bin`) vs system-wide (`/usr/local/bin`)
+
+- **Chosen**: Default recommendation is `~/.local/bin/babytime` → `bin/babytime` in the repo.
+- **Alternative**: `/usr/local/bin/babytime` with `sudo`.
+- **Why**: User-writable directories avoid root for day-to-day dev tools; fewer foot-guns than editing system paths. `/usr/local/bin` is still offered for shared machines or habit.
+- **Tradeoff**: Each user who wants `babytime` on PATH runs the installer once (or shares a system link with sudo).
+- **Analogy**: A shortcut in your own desk drawer versus pinning a notice on the office bulletin board everyone shares.
+
 ### Port 8443 (not 80 or 443)
 
 - **Chosen**: Port 8443.
@@ -61,6 +76,12 @@ A self-hosted baby monitor web app. A MacBook runs a Python server on the home W
 ---
 
 ## How Each Piece Works
+
+### build-and-run.sh and bin/babytime
+
+**build-and-run.sh** prints a small terminal UI: it checks whether `babytime` in `~/.local/bin` or `/usr/local/bin` already points at this clone’s launcher (by resolving symlinks). Then you pick run-in-place, install symlink, or quit. Option 2 can append a PATH snippet to your shell rc file. **bin/babytime** only `cd`s to the repo root and runs `run.sh`, so typing `babytime` from anywhere starts the same flow as `./run.sh`.
+
+Example: `./build-and-run.sh` → choose `2` → new terminal → `babytime` → HTTPS server starts.
 
 ### server.py
 
