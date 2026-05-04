@@ -285,4 +285,9 @@ else
 fi
 
 printf '\n%sStarting…%s\n\n' "$BOLD" "$RST"
-exec bash "$ROOT/run.sh" "${RUN_ARGS[@]}"
+# Bash 3.2 + set -u: "${RUN_ARGS[@]}" errors when the array is empty.
+if [[ ${#RUN_ARGS[@]} -gt 0 ]]; then
+  exec bash "$ROOT/run.sh" "${RUN_ARGS[@]}"
+else
+  exec bash "$ROOT/run.sh"
+fi
