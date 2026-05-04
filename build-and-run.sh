@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # BabyTime — build (deps) and run. Optionally install a global `babytime` symlink.
 # Prefer ~/.local/bin (no sudo). /usr/local/bin is optional for shared machines.
-# With a TTY and no flags, prints a short numbered list (no clear / full-screen UI).
+# With a TTY and no flags: short numbered list (no clear / full-screen UI).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -11,14 +11,12 @@ SYSTEM_LOCAL="/usr/local/bin"
 LINK_NAME="babytime"
 
 if [[ -t 1 ]]; then
-  BOLD=$'\033[1m'
-  DIM=$'\033[2m'
-  GRN=$'\033[32m'
-  YLW=$'\033[33m'
-  RST=$'\033[0m'
+  BOLD=$'\033[1m' DIM=$'\033[2m' GRN=$'\033[32m' YLW=$'\033[33m' RST=$'\033[0m'
 else
   BOLD= DIM= GRN= YLW= RST=
 fi
+
+# --- symlinks ----------------------------------------------------------------
 
 resolve_link() {
   local p="$1"
@@ -31,18 +29,13 @@ resolve_link() {
     || echo ""
 }
 
-launcher_resolved() {
-  resolve_link "$LAUNCHER"
-}
+launcher_resolved() { resolve_link "$LAUNCHER"; }
 
 symlink_points_here() {
-  local install_dir="$1"
-  local link_path="$install_dir/$LINK_NAME"
-  local want
+  local install_dir="$1" link_path="$install_dir/$LINK_NAME" want got
   want="$(launcher_resolved)"
   [[ -z "$want" ]] && return 1
   if [[ -L "$link_path" ]]; then
-    local got
     got="$(resolve_link "$link_path")"
     [[ "$got" == "$want" ]]
   elif [[ -f "$link_path" ]]; then
@@ -54,32 +47,51 @@ symlink_points_here() {
 }
 
 any_symlink_ok() {
-  symlink_points_here "$USER_BIN" && return 0
-  symlink_points_here "$SYSTEM_LOCAL" && return 0
-  return 1
+  symlink_points_here "$USER_BIN" || symlink_points_here "$SYSTEM_LOCAL"
 }
 
 ensure_launcher_executable() {
-  if [[ ! -f "$LAUNCHER" ]]; then
-    echo "Missing $LAUNCHER — repository layout may be broken." >&2
-    exit 1
-  fi
+  [[ -f "$LAUNCHER" ]] || { echo "Missing $LAUNCHER — repository layout may be broken." >&2; exit 1; }
   chmod +x "$LAUNCHER" 2>/dev/null || true
 }
 
 install_symlink() {
-  local install_dir="$1"
-  mkdir -p "$install_dir"
-  ln -sf "$LAUNCHER" "$install_dir/$LINK_NAME"
+  local dir="$1"
+  mkdir -p "$dir"
+  ln -sf "$LAUNCHER" "$dir/$LINK_NAME"
   chmod +x "$LAUNCHER"
 }
 
+install_user_symlink() {
+  install_symlink "$USER_BIN"
+  printf '%sInstalled %s -> %s%s\n' "$GRN" "$USER_BIN/$LINK_NAME" "$LAUNCHER" "$RST"
+}
+
+install_system_symlink() {
+  if [[ -w "$SYSTEM_LOCAL" ]] 2>/dev/null; then
+    install_symlink "$SYSTEM_LOCAL"
+  else
+    printf '%sInstalling to %s (sudo)...%s\n' "$DIM" "$SYSTEM_LOCAL" "$RST"
+    sudo mkdir -p "$SYSTEM_LOCAL"
+    sudo ln -sf "$LAUNCHER" "$SYSTEM_LOCAL/$LINK_NAME"
+    sudo chmod +x "$LAUNCHER" 2>/dev/null || true
+  fi
+  printf '%sInstalled %s -> %s%s\n' "$GRN" "$SYSTEM_LOCAL/$LINK_NAME" "$LAUNCHER" "$RST"
+}
+
+hint_path_if_bins_missing() {
+  if path_has_user_bin || path_has_system_local; then
+    return 0
+  fi
+  printf '%sNeither ~/.local/bin nor /usr/local/bin is on PATH for this shell.%s\n' "$YLW" "$RST"
+  printf '  Try: %sexport PATH="/usr/local/bin:$PATH"%s\n' "$BOLD" "$RST"
+}
+
+# --- PATH --------------------------------------------------------------------
+
 path_has_dir() {
   local d="$1"
-  case ":${PATH}:" in
-    *":$d:"*) return 0 ;;
-    *) return 1 ;;
-  esac
+  case ":${PATH}:" in *":$d:"*) return 0 ;; *) return 1 ;; esac
 }
 
 path_has_user_bin() { path_has_dir "$USER_BIN"; }
@@ -96,15 +108,14 @@ default_shell_rc() {
 }
 
 append_path_block() {
-  local shell_rc="${1:-$(default_shell_rc)}"
-  local block_start="# >>> BabyTime PATH"
-  local block_end="# <<< BabyTime PATH"
+  local shell_rc="${1:-$(default_shell_rc)}" block_start="# >>> BabyTime PATH" block_end="# <<< BabyTime PATH"
   local snippet="export PATH=\"$USER_BIN:\$PATH\""
 
   if [[ -f "$shell_rc" ]] && grep -qF "$block_start" "$shell_rc" 2>/dev/null; then
     printf '%sBabyTime PATH block already in %s — skipped.%s\n' "$DIM" "$shell_rc" "$RST"
     return 0
   fi
+  mkdir -p "$(dirname "$shell_rc")" 2>/dev/null || true
   {
     echo ""
     echo "$block_start"
@@ -158,31 +169,11 @@ interactive_menu() {
   read -r -p "Enter 1-4 [default: 3]: " choice
   choice="${choice:-3}"
   case "$choice" in
-    1)
-      install_symlink "$USER_BIN"
-      printf '%sInstalled %s -> %s%s\n' "$GRN" "$USER_BIN/$LINK_NAME" "$LAUNCHER" "$RST"
-      offer_path_prompt
-      ;;
-    2)
-      if [[ -w "$SYSTEM_LOCAL" ]] 2>/dev/null; then
-        install_symlink "$SYSTEM_LOCAL"
-      else
-        printf '%sInstalling to %s (sudo)...%s\n' "$DIM" "$SYSTEM_LOCAL" "$RST"
-        sudo mkdir -p "$SYSTEM_LOCAL"
-        sudo ln -sf "$LAUNCHER" "$SYSTEM_LOCAL/$LINK_NAME"
-        sudo chmod +x "$LAUNCHER" 2>/dev/null || true
-      fi
-      printf '%sInstalled %s -> %s%s\n' "$GRN" "$SYSTEM_LOCAL/$LINK_NAME" "$LAUNCHER" "$RST"
-      if ! path_has_user_bin && ! path_has_system_local; then
-        printf '%sNeither ~/.local/bin nor /usr/local/bin is on PATH for this shell.%s\n' "$YLW" "$RST"
-        printf '  Try: %sexport PATH="/usr/local/bin:$PATH"%s\n' "$BOLD" "$RST"
-      fi
-      ;;
+    1) install_user_symlink; offer_path_prompt ;;
+    2) install_system_symlink; hint_path_if_bins_missing ;;
     3) ;;
     4) exit 0 ;;
-    *)
-      printf '%sUnknown choice — running from this clone.%s\n' "$YLW" "$RST"
-      ;;
+    *) printf '%sUnknown choice — running from this clone.%s\n' "$YLW" "$RST" ;;
   esac
 }
 
@@ -213,35 +204,16 @@ RUN_ARGS=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -h|--help)
-      usage
-      exit 0
-      ;;
-    --install-user)
-      INSTALL_USER=1
-      shift
-      ;;
-    --install-system)
-      INSTALL_SYSTEM=1
-      shift
-      ;;
+    -h|--help) usage; exit 0 ;;
+    --install-user) INSTALL_USER=1; shift ;;
+    --install-system) INSTALL_SYSTEM=1; shift ;;
     --add-to-path)
       ADD_TO_PATH=1
       shift
-      if [[ $# -gt 0 && "$1" != --* ]]; then
-        PATH_RC="$1"
-        shift
-      fi
+      if [[ $# -gt 0 && "$1" != --* ]]; then PATH_RC="$1"; shift; fi
       ;;
-    --)
-      shift
-      RUN_ARGS+=("$@")
-      break
-      ;;
-    *)
-      RUN_ARGS+=("$1")
-      shift
-      ;;
+    --) shift; RUN_ARGS+=("$@"); break ;;
+    *) RUN_ARGS+=("$1"); shift ;;
   esac
 done
 
@@ -251,32 +223,10 @@ FLAG_MODE=0
 (( INSTALL_USER || INSTALL_SYSTEM || ADD_TO_PATH )) && FLAG_MODE=1
 
 if (( FLAG_MODE )); then
-  if (( INSTALL_USER && INSTALL_SYSTEM )); then
-    echo "Use only one of --install-user or --install-system." >&2
-    exit 1
-  fi
-
-  if (( INSTALL_USER )); then
-    install_symlink "$USER_BIN"
-    printf '%sInstalled %s -> %s%s\n' "$GRN" "$USER_BIN/$LINK_NAME" "$LAUNCHER" "$RST"
-  fi
-
-  if (( INSTALL_SYSTEM )); then
-    if [[ -w "$SYSTEM_LOCAL" ]] 2>/dev/null; then
-      install_symlink "$SYSTEM_LOCAL"
-    else
-      printf '%sInstalling to %s (sudo)...%s\n' "$DIM" "$SYSTEM_LOCAL" "$RST"
-      sudo mkdir -p "$SYSTEM_LOCAL"
-      sudo ln -sf "$LAUNCHER" "$SYSTEM_LOCAL/$LINK_NAME"
-      sudo chmod +x "$LAUNCHER" 2>/dev/null || true
-    fi
-    printf '%sInstalled %s -> %s%s\n' "$GRN" "$SYSTEM_LOCAL/$LINK_NAME" "$LAUNCHER" "$RST"
-  fi
-
-  if (( ADD_TO_PATH )); then
-    append_path_block "${PATH_RC:-}"
-  fi
-
+  (( INSTALL_USER && INSTALL_SYSTEM )) && { echo "Use only one of --install-user or --install-system." >&2; exit 1; }
+  (( INSTALL_USER )) && install_user_symlink
+  (( INSTALL_SYSTEM )) && install_system_symlink
+  (( ADD_TO_PATH )) && append_path_block "${PATH_RC:-}"
   print_status
 elif [[ -t 0 ]]; then
   interactive_menu
