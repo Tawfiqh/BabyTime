@@ -1,5 +1,21 @@
 #!/usr/bin/env bash
 # Entry point when BabyTime is on PATH. Dispatches to the repo's run.sh.
+# BASH_SOURCE may be ~/.local/bin/babytime (a symlink); resolve to the real repo.
 set -euo pipefail
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+_here="${BASH_SOURCE[0]}"
+if command -v python3 &>/dev/null; then
+  ROOT="$(python3 -c 'import os, sys; print(os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[1]))))' "$_here")"
+else
+  while [[ -L "$_here" ]]; do
+    _link="$(readlink "$_here")"
+    if [[ "$_link" != /* ]]; then
+      _here="$(cd "$(dirname "$_here")" && pwd)/$_link"
+    else
+      _here="$_link"
+    fi
+  done
+  ROOT="$(cd "$(dirname "$_here")/.." && pwd)"
+fi
+
 exec bash "$ROOT/run.sh" "$@"
