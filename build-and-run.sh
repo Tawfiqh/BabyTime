@@ -79,12 +79,10 @@ install_system_symlink() {
   printf '%sInstalled %s -> %s%s\n' "$GRN" "$SYSTEM_LOCAL/$LINK_NAME" "$LAUNCHER" "$RST"
 }
 
-hint_path_if_bins_missing() {
-  if path_has_user_bin || path_has_system_local; then
-    return 0
-  fi
-  printf '%sNeither ~/.local/bin nor /usr/local/bin is on PATH for this shell.%s\n' "$YLW" "$RST"
-  printf '  Try: %sexport PATH="/usr/local/bin:$PATH"%s\n' "$BOLD" "$RST"
+hint_path_if_system_local_missing() {
+  path_has_system_local && return 0
+  printf '%s%s is not on PATH for this shell.%s\n' "$YLW" "$SYSTEM_LOCAL" "$RST"
+  printf '  Try: %sexport PATH="%s:$PATH"%s\n' "$BOLD" "$SYSTEM_LOCAL" "$RST"
 }
 
 # --- PATH --------------------------------------------------------------------
@@ -147,14 +145,20 @@ print_status() {
   printf '\n%sBabyTime%s  repo: %s\n' "$BOLD" "$RST" "$ROOT"
   if any_symlink_ok; then
     printf '  %s%s is symlinked to this repo.%s\n' "$GRN" "$LINK_NAME" "$RST"
+    if symlink_points_here "$USER_BIN" && ! path_has_user_bin; then
+      printf '  %sNote:%s ~/.local/bin is not on PATH for this shell.\n' "$YLW" "$RST"
+      printf '        Add once: %sexport PATH="$HOME/.local/bin:$PATH"%s\n' "$BOLD" "$RST"
+    elif symlink_points_here "$SYSTEM_LOCAL" && ! path_has_system_local; then
+      printf '  %sNote:%s %s is not on PATH for this shell.\n' "$YLW" "$RST" "$SYSTEM_LOCAL"
+      printf '        Add once: %sexport PATH="%s:$PATH"%s\n' "$BOLD" "$SYSTEM_LOCAL" "$RST"
+    fi
   else
     printf '  %sNo %s symlink yet in ~/.local/bin or /usr/local/bin.%s\n' "$YLW" "$LINK_NAME" "$RST"
     printf '  %sOr use flags:%s ./build-and-run.sh --install-user [--add-to-path]%s\n' "$DIM" "$BOLD" "$RST"
-  fi
-
-  if ! path_has_user_bin && ! path_has_system_local; then
-    printf '  %sNote:%s ~/.local/bin and /usr/local/bin are not on PATH for this shell.\n' "$YLW" "$RST"
-    printf '        Add once: %sexport PATH="$HOME/.local/bin:$PATH"%s\n' "$BOLD" "$RST"
+    if ! path_has_user_bin && ! path_has_system_local; then
+      printf '  %sNote:%s ~/.local/bin and /usr/local/bin are not on PATH for this shell.\n' "$YLW" "$RST"
+      printf '        Add once: %sexport PATH="$HOME/.local/bin:$PATH"%s\n' "$BOLD" "$RST"
+    fi
   fi
 }
 
@@ -170,7 +174,7 @@ interactive_menu() {
   choice="${choice:-3}"
   case "$choice" in
     1) install_user_symlink; offer_path_prompt ;;
-    2) install_system_symlink; hint_path_if_bins_missing ;;
+    2) install_system_symlink; hint_path_if_system_local_missing ;;
     3) ;;
     4) exit 0 ;;
     *) printf '%sUnknown choice — running from this clone.%s\n' "$YLW" "$RST" ;;
@@ -225,7 +229,7 @@ FLAG_MODE=0
 if (( FLAG_MODE )); then
   (( INSTALL_USER && INSTALL_SYSTEM )) && { echo "Use only one of --install-user or --install-system." >&2; exit 1; }
   (( INSTALL_USER )) && install_user_symlink
-  (( INSTALL_SYSTEM )) && install_system_symlink
+  (( INSTALL_SYSTEM )) && { install_system_symlink; hint_path_if_system_local_missing; }
   (( ADD_TO_PATH )) && append_path_block "${PATH_RC:-}"
   print_status
 elif [[ -t 0 ]]; then

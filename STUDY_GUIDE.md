@@ -81,6 +81,8 @@ A self-hosted baby monitor web app. A MacBook runs a Python server on the home W
 
 **build-and-run.sh** prints symlink status, then either a small **1–4** menu (interactive TTY, no flags) or goes straight through when stdin is not a TTY or when you pass `--install-user` / `--install-system` / `--add-to-path`. Then it runs `run.sh`. **bin/babytime** only `cd`s to the repo root and runs `run.sh`.
 
+If you install to **`/usr/local/bin`** (menu **2** or `--install-system`), the script warns when that directory is missing from `PATH` — not when `~/.local/bin` is on `PATH` but `/usr/local/bin` is not (those are independent).
+
 Example: `./build-and-run.sh` → choose **1** → confirm PATH → new terminal → `babytime`. Or once: `./build-and-run.sh --install-user --add-to-path`.
 
 ### server.py
