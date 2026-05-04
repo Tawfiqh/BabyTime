@@ -1,17 +1,13 @@
 #!/usr/bin/env bash
-# BabyTime — build (deps), optional global symlink + PATH hint, then run the server.
-# Best practice: install the launcher in ~/.local/bin (no sudo, matches XDG user paths).
-# /usr/local/bin is optional for multi-user Macs when you accept sudo once.
+# BabyTime — build (deps) and run. Optionally install a global `babytime` symlink.
+# Prefer ~/.local/bin (no sudo). /usr/local/bin is optional for shared machines.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LAUNCHER="$ROOT/bin/babytime"
-# XDG-style user bin (no sudo); matches pip/uv/cargo defaults on many distros.
 USER_BIN="$HOME/.local/bin"
 SYSTEM_LOCAL="/usr/local/bin"
 LINK_NAME="babytime"
-
-# ── simple TUI helpers ───────────────────────────────────────────────────────-------------------
 
 if [[ -t 1 ]]; then
   BOLD=$'\033[1m'
@@ -23,21 +19,12 @@ else
   BOLD= DIM= GRN= YLW= RST=
 fi
 
-hr() { printf '%s\n' "${DIM}────────────────────────────────────────────────────────${RST}"; }
-title() { printf '\n%s%s%s\n' "$BOLD" "$1" "$RST"; }
-info() { printf '  %s\n' "$1"; }
-warn() { printf '%s! %s%s\n' "$YLW" "$1" "$RST"; }
-
-
-# ── Symlink helpers ───────────────────────────────────────────────────────-------------------
-
 resolve_link() {
   local p="$1"
   if [[ ! -e "$p" && ! -L "$p" ]]; then
     echo ""
     return
   fi
-  # Portable canonical path (readlink -f is not on macOS BSD readlink).
   python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$p" 2>/dev/null \
     || realpath "$p" 2>/dev/null \
     || echo ""
@@ -58,7 +45,7 @@ symlink_points_here() {
     got="$(resolve_link "$link_path")"
     [[ "$got" == "$want" ]]
   elif [[ -f "$link_path" ]]; then
-    warn "$link_path exists but is not a symlink — not overwriting."
+    printf '%s! %s exists but is not a symlink — not overwriting.%s\n' "$YLW" "$link_path" "$RST" >&2
     return 1
   else
     return 1
@@ -86,7 +73,6 @@ install_symlink() {
   chmod +x "$LAUNCHER"
 }
 
-# ── Path helpers ───────────────────────────────────────────────────────────────────----------
 path_has_dir() {
   local d="$1"
   case ":${PATH}:" in
@@ -98,120 +84,136 @@ path_has_dir() {
 path_has_user_bin() { path_has_dir "$USER_BIN"; }
 path_has_system_local() { path_has_dir "$SYSTEM_LOCAL"; }
 
-offer_path_snippet() {
-  local shell_rc=""
-  if [[ -n "${ZSH_VERSION:-}" ]] || [[ "$SHELL" == *zsh ]]; then
-    shell_rc="${ZDOTDIR:-$HOME}/.zshrc"
+default_shell_rc() {
+  if [[ -n "${ZSH_VERSION:-}" ]] || [[ "${SHELL:-}" == *zsh ]]; then
+    echo "${ZDOTDIR:-$HOME}/.zshrc"
+  elif [[ -f "$HOME/.bash_profile" ]] && [[ ! -f "$HOME/.bashrc" ]]; then
+    echo "$HOME/.bash_profile"
   else
-    shell_rc="$HOME/.bashrc"
+    echo "$HOME/.bashrc"
   fi
-  [[ -f "$HOME/.bash_profile" ]] && [[ ! -f "$HOME/.bashrc" ]] && shell_rc="$HOME/.bash_profile"
+}
 
+append_path_block() {
+  local shell_rc="${1:-$(default_shell_rc)}"
   local block_start="# >>> BabyTime PATH"
   local block_end="# <<< BabyTime PATH"
   local snippet="export PATH=\"$USER_BIN:\$PATH\""
 
-  hr
-  title "PATH (recommended)"
-  info "Put user tools in ${BOLD}$USER_BIN${RST} and add that directory once to your shell config."
-  info "Many Linux installs already include ~/.local/bin on PATH; macOS often does not."
-  hr
-  if path_has_user_bin; then
-    info "${GRN}~/.local/bin is already on your PATH for this session.${RST}"
-  else
-    warn "Your PATH does not include $USER_BIN (for this session)."
+  if [[ -f "$shell_rc" ]] && grep -qF "$block_start" "$shell_rc" 2>/dev/null; then
+    printf '%sBabyTime PATH block already in %s — skipped.%s\n' "$DIM" "$shell_rc" "$RST"
+    return 0
   fi
-  printf '\n'
-  local ans=""
-  if [[ -t 0 ]]; then
-    read -r -p "Append a guarded block to ${shell_rc} now? [y/N] " ans
-  fi
-  local ans_lc
-  ans_lc="$(printf '%s' "$ans" | tr '[:upper:]' '[:lower:]')"
-  if [[ "$ans_lc" == "y" || "$ans_lc" == "yes" ]]; then
-    if [[ -f "$shell_rc" ]] && grep -qF "$block_start" "$shell_rc" 2>/dev/null; then
-      info "BabyTime PATH block already present in $shell_rc — skipped."
-    else
-      {
-        echo ""
-        echo "$block_start"
-        echo "$snippet"
-        echo "$block_end"
-      } >>"$shell_rc"
-      info "Appended to $shell_rc — open a new terminal or: ${BOLD}source $shell_rc${RST}"
-    fi
-  else
-    info "Add manually: $snippet"
-  fi
+  {
+    echo ""
+    echo "$block_start"
+    echo "$snippet"
+    echo "$block_end"
+  } >>"$shell_rc"
+  printf '%sAppended PATH snippet to %s%s\n' "$GRN" "$shell_rc" "$RST"
+  printf '  Open a new terminal or: %ssource %s%s\n' "$BOLD" "$shell_rc" "$RST"
 }
 
+usage() {
+  cat >&2 <<'EOF'
+BabyTime — build (deps) and run. Optionally install a global `babytime` symlink.
 
-# ── MAIN ─────────────────────────────────────────────────────────────────────────------------
-main_menu() {
-  ensure_launcher_executable
-  if [[ -t 0 && -t 1 ]]; then
-    clear 2>/dev/null || true
-  fi
+Usage: ./build-and-run.sh [options]
 
-  title "BabyTime — build & run"
-  hr
-  info "Repo: $ROOT"
-  info "Launcher: $LAUNCHER"
-  hr
+  Default: print symlink status, then start the server (same as run.sh).
 
-  if any_symlink_ok; then
-    info "${GRN}$LINK_NAME is already symlinked to this repo.${RST}"
-  else
-    info "${YLW}No symlink to this repo found in:${RST}"
-    info "  • $USER_BIN/$LINK_NAME  (preferred — no sudo)"
-    info "  • $SYSTEM_LOCAL/$LINK_NAME  (optional — needs sudo on some systems)"
-  fi
-  hr
-  printf '\n%s\n' "${BOLD}Choose:${RST}"
-  printf '  %s Run from this clone (install deps if needed)%s\n' "1)" "$RST"
-  printf '  %s Symlink to ~/.local/bin, then run (asks about PATH)%s\n' "2)" "$RST"
-  printf '  %s Symlink to /usr/local/bin (sudo), then run%s\n' "3)" "$RST"
-  printf '  %s Exit%s\n' "4)" "$RST"
-  printf '\n'
-  local choice="1"
-  if [[ -t 0 ]]; then
-    read -r -p "Enter 1-4 [default: 1]: " choice
-    choice="${choice:-1}"
-  else
-    info "${DIM}(non-interactive stdin — running option 1)${RST}"
-  fi
+  --install-user        Symlink babytime -> ~/.local/bin (no sudo)
+  --install-system      Symlink babytime -> /usr/local/bin (sudo if needed)
+  --add-to-path [FILE]  Append ~/.local/bin to PATH in shell rc (default: auto-detect)
+  -h, --help            Show this help
 
-  case "$choice" in
-    1) ;;
-    2)
-      install_symlink "$USER_BIN"
-      info "Installed: $USER_BIN/$LINK_NAME -> $LAUNCHER"
-      offer_path_snippet
+Examples:
+  ./build-and-run.sh
+  ./build-and-run.sh --install-user --add-to-path
+EOF
+}
+
+INSTALL_USER=0
+INSTALL_SYSTEM=0
+ADD_TO_PATH=0
+PATH_RC=""
+RUN_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help)
+      usage
+      exit 0
       ;;
-    3)
-      if [[ -w "$SYSTEM_LOCAL" ]] 2>/dev/null; then
-        install_symlink "$SYSTEM_LOCAL"
-      else
-        info "Requesting sudo to write $SYSTEM_LOCAL/$LINK_NAME ..."
-        sudo mkdir -p "$SYSTEM_LOCAL"
-        sudo ln -sf "$LAUNCHER" "$SYSTEM_LOCAL/$LINK_NAME"
-        sudo chmod +x "$LAUNCHER" 2>/dev/null || true
-      fi
-      info "Installed: $SYSTEM_LOCAL/$LINK_NAME -> $LAUNCHER"
-      if ! path_has_user_bin && ! path_has_system_local; then
-        warn "Neither $USER_BIN nor $SYSTEM_LOCAL is on PATH for this session."
-        info "Either open a new terminal after fixing PATH, or run: export PATH=\"$SYSTEM_LOCAL:\$PATH\""
+    --install-user)
+      INSTALL_USER=1
+      shift
+      ;;
+    --install-system)
+      INSTALL_SYSTEM=1
+      shift
+      ;;
+    --add-to-path)
+      ADD_TO_PATH=1
+      shift
+      if [[ $# -gt 0 && "$1" != --* ]]; then
+        PATH_RC="$1"
+        shift
       fi
       ;;
-    4) exit 0 ;;
+    --)
+      shift
+      RUN_ARGS+=("$@")
+      break
+      ;;
     *)
-      warn "Unknown choice — running local only."
+      RUN_ARGS+=("$1")
+      shift
       ;;
   esac
+done
 
-  hr
-  title "Starting BabyTime…"
-  exec bash "$ROOT/run.sh" "$@"
-}
+ensure_launcher_executable
 
-main_menu "$@"
+if (( INSTALL_USER && INSTALL_SYSTEM )); then
+  echo "Use only one of --install-user or --install-system." >&2
+  exit 1
+fi
+
+if (( INSTALL_USER )); then
+  install_symlink "$USER_BIN"
+  printf '%sInstalled %s -> %s%s\n' "$GRN" "$USER_BIN/$LINK_NAME" "$LAUNCHER" "$RST"
+fi
+
+if (( INSTALL_SYSTEM )); then
+  if [[ -w "$SYSTEM_LOCAL" ]] 2>/dev/null; then
+    install_symlink "$SYSTEM_LOCAL"
+  else
+    printf '%sInstalling to %s (sudo)...%s\n' "$DIM" "$SYSTEM_LOCAL" "$RST"
+    sudo mkdir -p "$SYSTEM_LOCAL"
+    sudo ln -sf "$LAUNCHER" "$SYSTEM_LOCAL/$LINK_NAME"
+    sudo chmod +x "$LAUNCHER" 2>/dev/null || true
+  fi
+  printf '%sInstalled %s -> %s%s\n' "$GRN" "$SYSTEM_LOCAL/$LINK_NAME" "$LAUNCHER" "$RST"
+fi
+
+if (( ADD_TO_PATH )); then
+  append_path_block "${PATH_RC:-}"
+fi
+
+printf '\n%sBabyTime%s  repo: %s\n' "$BOLD" "$RST" "$ROOT"
+if any_symlink_ok; then
+  printf '  %s%s is symlinked to this repo.%s\n' "$GRN" "$LINK_NAME" "$RST"
+else
+  printf '  %sNo %s symlink yet in ~/.local/bin or /usr/local/bin.%s\n' "$YLW" "$LINK_NAME" "$RST"
+  printf '  %sInstall:%s ./build-and-run.sh --install-user\n' "$DIM" "$RST"
+  printf '          %s./build-and-run.sh --install-user --add-to-path%s\n' "$DIM" "$RST"
+fi
+
+if ! path_has_user_bin && ! path_has_system_local; then
+  printf '  %sNote:%s ~/.local/bin and /usr/local/bin are not on PATH for this shell.\n' "$YLW" "$RST"
+  printf '        Add once: %sexport PATH="$HOME/.local/bin:$PATH"%s\n' "$BOLD" "$RST"
+fi
+
+printf '\n%sStarting…%s\n\n' "$BOLD" "$RST"
+exec bash "$ROOT/run.sh" "${RUN_ARGS[@]}"
