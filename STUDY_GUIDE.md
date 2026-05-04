@@ -89,7 +89,7 @@ Example: `./build-and-run.sh` → choose **1** → confirm PATH → new terminal
 
 **install.sh** installs `uv`, syncs the venv from `requirements.txt`, then if `mkcert` is on `PATH` it runs **`scripts/ensure-certs.sh`**, which creates `certs/cert.pem` and `certs/key.pem` when they are missing (`mkcert -install` once per machine, then `mkcert` for the leaf cert). If `mkcert` is not installed yet, install prints a skip message — install **brew** packages only for `uv`, not for `mkcert`.
 
-**run.sh** ensures the venv exists, then ensures certs exist by calling **`scripts/ensure-certs.sh`** unless you pass **`--skip-mkcert`**. With `--skip-mkcert`, if cert files are missing the script exits with an error instead of calling mkcert (useful when you will supply certs yourself or run without TLS later). Any other arguments are passed through to `server.py` (e.g. `./run.sh --reload` if you add that to the server entrypoint later).
+**run.sh** runs **`git pull --ff-only`** first when `.git` exists and `git` is on `PATH` (skips for a plain tarball or no git). If pull fails (offline, local commits, non-fast-forward), it prints a warning and continues. Pass **`--skip-git-pull`** to skip. Then it ensures the venv exists, then ensures certs via **`scripts/ensure-certs.sh`** unless you pass **`--skip-mkcert`**. With `--skip-mkcert`, if cert files are missing the script exits with an error instead of calling mkcert. Any other arguments are passed through to `server.py` (e.g. `./run.sh --reload` if you add that to the server entrypoint later).
 
 ### server.py
 
@@ -137,6 +137,7 @@ Checks `localStorage` for a saved role. If found, redirects immediately. Otherwi
 - **Buffer growth**: The viewer's `SourceBuffer` grows indefinitely. On long sessions this may cause memory pressure on old iPads. Solution (not yet implemented): periodically call `sourceBuffer.remove()` to trim old data.
 - **Latency spikes**: If the WiFi is congested, chunks queue up and latency increases. There's no mechanism to drop old chunks and snap to live.
 - **No authentication**: Anyone on the home WiFi can access the server. Acceptable for home use; not for shared networks.
+- **`run.sh` git pull**: Each start runs `git pull --ff-only` when `.git` exists. If you are on a detached HEAD, have diverged from `origin`, or are offline, pull may fail — the script warns and still starts. Use `./run.sh --skip-git-pull` to avoid touching git.
 
 ---
 

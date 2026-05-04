@@ -3,19 +3,33 @@
 # Runs install.sh first if the virtual environment is missing.
 # TLS: certs are created via scripts/ensure-certs.sh (from install.sh or here)
 # unless you pass --skip-mkcert (then missing certs exit with a hint).
+# By default runs git pull --ff-only when .git exists; use --skip-git-pull to skip.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 SKIP_MKCERT=0
+SKIP_GIT_PULL=0
 PY_ARGS=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --skip-mkcert) SKIP_MKCERT=1; shift ;;
+    --skip-git-pull) SKIP_GIT_PULL=1; shift ;;
     *) PY_ARGS+=("$1"); shift ;;
   esac
 done
+
+# ── 0. Sync with remote (fast-forward only) ───────────────────────────────────
+
+if (( ! SKIP_GIT_PULL )) && [[ -d .git ]] && command -v git &>/dev/null; then
+  echo ""
+  echo "  git pull --ff-only …"
+  if ! git pull --ff-only; then
+    echo "  Warning: git pull failed (offline, local commits, or non-ff?). Continuing." >&2
+  fi
+  echo ""
+fi
 
 # ── 1. Install dependencies if needed ───────────────────────────────────────────
 
