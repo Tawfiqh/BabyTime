@@ -32,7 +32,10 @@ resolve_link() {
 launcher_resolved() { resolve_link "$LAUNCHER"; }
 
 symlink_points_here() {
-  local install_dir="$1" link_path="$install_dir/$LINK_NAME" want got
+  # Bash 3.2 + set -u: one `local` line cannot reference another local on the same line.
+  local install_dir="$1"
+  local link_path="$install_dir/$LINK_NAME"
+  local want got
   want="$(launcher_resolved)"
   [[ -z "$want" ]] && return 1
   if [[ -L "$link_path" ]]; then
