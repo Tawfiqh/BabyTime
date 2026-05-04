@@ -37,11 +37,9 @@ fi
 echo "Syncing dependencies from requirements.txt..."
 uv pip install --python .venv/bin/python -r requirements.txt
 
-# ── 4. TLS certs (mkcert) when tool is available ─────────────────────────────
-if command -v mkcert &>/dev/null; then
-  bash "$SCRIPT_DIR/scripts/ensure-certs.sh"
-else
-  echo "mkcert not on PATH — skipping cert generation. Install mkcert, then: bash install.sh or ./run.sh"
+# ── 4. TLS certs (mkcert if available, else OpenSSL; do not fail whole install) ─
+if ! bash "$SCRIPT_DIR/scripts/ensure-certs.sh"; then
+  echo "Could not create TLS certs (need openssl or mkcert). Run: bash scripts/ensure-certs.sh after installing openssl."
 fi
 
 echo "Done."

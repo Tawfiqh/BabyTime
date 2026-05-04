@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Start the BabyTime server.
 # Runs install.sh first if the virtual environment is missing.
-# TLS: certs are created via scripts/ensure-certs.sh (from install.sh or here)
-# unless you pass --skip-mkcert (then missing certs exit with a hint).
+# TLS: scripts/ensure-certs.sh (mkcert if available, else OpenSSL — no root).
+# --skip-mkcert: never use mkcert; use OpenSSL self-signed when certs missing.
+# --http: plain HTTP on port 8442 (local testing; camera on localhost only).
 # By default runs git pull --ff-only when .git exists; use --skip-git-pull to skip.
 set -euo pipefail
 
@@ -11,11 +12,13 @@ cd "$SCRIPT_DIR"
 
 SKIP_MKCERT=0
 SKIP_GIT_PULL=0
+USE_HTTP=0
 PY_ARGS=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --skip-mkcert) SKIP_MKCERT=1; shift ;;
     --skip-git-pull) SKIP_GIT_PULL=1; shift ;;
+    --http) USE_HTTP=1; shift ;;
     *) PY_ARGS+=("$1"); shift ;;
   esac
 done
@@ -43,14 +46,15 @@ fi
 
 export PATH="$HOME/.local/bin:$PATH"
 
-# ── 2. TLS certificates ───────────────────────────────────────────────────────
+# ── 2. TLS certificates (skip entirely in --http mode) ───────────────────────
 
-if [ ! -f "certs/cert.pem" ] || [ ! -f "certs/key.pem" ]; then
+if (( USE_HTTP )); then
+  echo ""
+  echo "  HTTP mode (--http): not generating TLS certs."
+  echo ""
+elif [ ! -f "certs/cert.pem" ] || [ ! -f "certs/key.pem" ]; then
   if (( SKIP_MKCERT )); then
-    echo "" >&2
-    echo "WARNING: certs/cert.pem or certs/key.pem missing; --skip-mkcert set — not running mkcert." >&2
-    echo "  Add cert files, remove --skip-mkcert, or run: bash install.sh (with mkcert installed)" >&2
-    echo "" >&2
+    BABYTIME_NO_MKCERT=1 bash "$SCRIPT_DIR/scripts/ensure-certs.sh"
   else
     bash "$SCRIPT_DIR/scripts/ensure-certs.sh"
   fi
@@ -65,20 +69,37 @@ fi
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  BabyTime starting on port 8443 (HTTPS)"
-echo ""
-echo "  This machine:  https://localhost:8443"
-if [ -n "$LAN_IP" ]; then
-  echo "  Network:   https://${LAN_IP}:8443"
+if (( USE_HTTP )); then
+  echo "  BabyTime starting on port 8442 (HTTP — local testing)"
   echo ""
-  echo "  First time on iOS? Visit https://${LAN_IP}:8443/setup.html"
+  echo "  This machine:  http://localhost:8442"
+  if [ -n "$LAN_IP" ]; then
+    echo "  Network:   http://${LAN_IP}:8442"
+    echo ""
+    echo "  Camera/mic on non-localhost may be blocked; use localhost or HTTPS for real devices."
+  fi
+else
+  echo "  BabyTime starting on port 8443 (HTTPS)"
+  echo ""
+  echo "  This machine:  https://localhost:8443"
+  if [ -n "$LAN_IP" ]; then
+    echo "  Network:   https://${LAN_IP}:8443"
+    echo ""
+    echo "  First time on iOS? Visit https://${LAN_IP}:8443/setup.html"
+  fi
 fi
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
 # ── 4. Start the server ───────────────────────────────────────────────────────
 
-if [[ ${#PY_ARGS[@]} -gt 0 ]]; then
+if (( USE_HTTP )); then
+  if [[ ${#PY_ARGS[@]} -gt 0 ]]; then
+    exec .venv/bin/python server.py --http "${PY_ARGS[@]}"
+  else
+    exec .venv/bin/python server.py --http
+  fi
+elif [[ ${#PY_ARGS[@]} -gt 0 ]]; then
   exec .venv/bin/python server.py "${PY_ARGS[@]}"
 else
   exec .venv/bin/python server.py

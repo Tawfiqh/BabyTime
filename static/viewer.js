@@ -19,6 +19,9 @@ let hasVideo = false;
 let hasSeekedToLive = false;
 let audioVisualizer = null;
 
+/** ws:// on HTTP (e.g. --http local test); wss:// on HTTPS */
+const WS_SCHEME = location.protocol === 'https:' ? 'wss:' : 'ws:';
+
 // ==============================
 // Setup mime types
 // ==============================
@@ -308,7 +311,7 @@ function onViewerWebSocketError(e) {
 }
 
 function openViewerWebSocket() {
-  const wsUrl = `wss://${location.host}/ws/viewer`;
+  const wsUrl = `${WS_SCHEME}//${location.host}/ws/viewer`;
   console.log(`[WS] Connecting to ${wsUrl}`);
   ws = new WebSocket(wsUrl);
   ws.binaryType = 'arraybuffer';

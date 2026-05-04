@@ -36,13 +36,13 @@ A self-hosted baby monitor web app. A MacBook runs a Python server on the home W
 - **Tradeoff**: Server uses bandwidth proportional to `stream_bitrate × viewer_count`. Fine for a home LAN, would not scale to the internet.
 - **Analogy**: Like a radio station broadcasting to all listeners, rather than each listener calling the studio directly.
 
-### HTTPS with mkcert (not self-signed certs)
+### HTTPS with mkcert or OpenSSL (no root required for OpenSSL)
 
-- **Chosen**: `mkcert` creates a locally-trusted CA that devices can opt into trusting.
-- **Alternative**: Self-signed cert — browser shows an error that cannot be bypassed for `getUserMedia` on iOS.
-- **Why this**: iOS Safari requires HTTPS or `localhost` to allow camera/mic access. mkcert creates a cert that iOS can actually trust. We include both the WiFi IP and the Mac Bonjour hostname (`<Computer-Name>.local`) so devices can connect with a stable local name.
-- **Tradeoff**: One-time setup per iOS device (profile install + trust toggle in Settings).
-- **Analogy**: Like saving a friend's contact by name instead of memorizing a phone number that might change.
+- **Chosen**: Prefer **`mkcert`** when installed — creates a locally-trusted CA (needs `mkcert -install` once, which may prompt for admin on some setups). If mkcert is missing or **`--skip-mkcert`** is used, **`scripts/ensure-certs.sh`** falls back to **`openssl`** and writes **self-signed** `certs/cert.pem` + `certs/key.pem` and copies the leaf to **`certs/ca.pem`** for `/setup/ca.pem`. No `brew install` from scripts.
+- **Alternative**: HTTP-only dev server — **`./run.sh --http`** runs Uvicorn on **port 8442** without TLS. **`camera.js` / `viewer.js`** use **`ws://`** when the page is `http://` so WebSockets still work. Browsers only allow **`getUserMedia` on `http://localhost`** (not LAN IPs), so HTTP mode is mainly for **local “does it run?”** checks.
+- **Why this**: Locked-down or no-root machines often still have **`openssl`**. Self-signed HTTPS **runs** everywhere; iOS still needs the user to **install and trust** the cert (same flow as mkcert, but the browser shows warnings until trusted).
+- **Tradeoff**: OpenSSL certs are **not** auto-trusted like mkcert’s CA. **`--http`** does not replace HTTPS for real baby-monitor use on phones over WiFi.
+- **Analogy**: mkcert is a hall pass everyone recognizes; OpenSSL is a handwritten note you must get stamped at the office.
 
 ### Python FastAPI over Node.js
 
@@ -59,12 +59,12 @@ A self-hosted baby monitor web app. A MacBook runs a Python server on the home W
 - **Tradeoff**: Each user who wants `babytime` on PATH runs the installer once (or shares a system link with sudo).
 - **Analogy**: A shortcut in your own desk drawer versus pinning a notice on the office bulletin board everyone shares.
 
-### Port 8443 (not 80 or 443)
+### Port 8443 (HTTPS) and 8442 (HTTP dev)
 
-- **Chosen**: Port 8443.
+- **Chosen**: HTTPS on **8443** by default; optional **`--http`** on **8442** for no-TLS local testing.
 - **Why not 80**: HTTP on port 80 cannot serve camera pages — iOS Safari blocks `getUserMedia` on HTTP non-localhost origins.
 - **Why not 443**: Requires `sudo` on macOS (ports below 1024 are privileged).
-- **Tradeoff**: Users must type `:8443` in the URL.
+- **Tradeoff**: Users must type `:8443` (or `:8442` in HTTP mode).
 
 ### MediaRecorder + ManagedMediaSource (not HLS)
 
@@ -87,18 +87,20 @@ Example: `./build-and-run.sh` → choose **1** → confirm PATH → new terminal
 
 ### install.sh, run.sh, and scripts/ensure-certs.sh
 
-**install.sh** installs `uv`, syncs the venv from `requirements.txt`, then if `mkcert` is on `PATH` it runs **`scripts/ensure-certs.sh`**, which creates `certs/cert.pem` and `certs/key.pem` when they are missing (`mkcert -install` once per machine, then `mkcert` for the leaf cert). If `mkcert` is not installed yet, install prints a skip message — install **brew** packages only for `uv`, not for `mkcert`.
+**install.sh** installs `uv`, syncs the venv, then runs **`scripts/ensure-certs.sh`** if cert files are missing. That script uses **mkcert** when available (and not disabled), otherwise **OpenSSL** self-signed certs (needs `openssl` on PATH — no root). If cert creation fails, install prints a message but the **Python install still completes**.
 
-**run.sh** runs **`git pull --ff-only`** first when `.git` exists and `git` is on `PATH` (skips for a plain tarball or no git). If pull fails (offline, local commits, non-fast-forward), it prints a warning and continues. Pass **`--skip-git-pull`** to skip. Then it ensures the venv exists, then if cert files are missing it runs **`scripts/ensure-certs.sh`** unless you pass **`--skip-mkcert`** (then it only warns and continues — `server.py` will still error if certs are absent). Any other arguments are passed through to `server.py` (e.g. `./run.sh --reload` if you add that to the server entrypoint later).
+**run.sh** optionally **`git pull --ff-only`**, ensures the venv, then cert logic: **`--http`** skips TLS and starts **`server.py --http`** (port 8442). Otherwise missing certs trigger **`ensure-certs.sh`**; with **`--skip-mkcert`**, mkcert is never used (OpenSSL path only). Pass **`--skip-git-pull`** to skip pull. Other args go to **`server.py`** (e.g. **`--http`** if you invoke Python directly).
 
 ### server.py
 
 Runs the FastAPI app. Three main responsibilities:
 1. WebSocket endpoint `/ws/camera` — receives binary chunks from the camera, caches the first chunk (init segment), fans out every chunk to all viewer sockets.
 2. WebSocket endpoint `/ws/viewer` — sends the cached init segment immediately (so late joiners can decode), then streams all subsequent chunks.
-3. HTTP endpoint `/setup/ca.pem` — runs `mkcert -CAROOT` to find the CA file location, serves it for download so iOS devices can trust it.
+3. HTTP endpoint `/setup/ca.pem` — serves **`certs/ca.pem`** when present (OpenSSL mode), else falls back to **`mkcert -CAROOT`** / `rootCA.pem` for mkcert installs.
 
 Example: Camera sends 50KB chunk → server loops over 3 connected viewers → sends 50KB to each.
+
+**`static/camera.js` / `static/viewer.js`**: WebSocket URL uses **`ws://`** when the page is served over **HTTP** and **`wss://`** over **HTTPS**, so **`./run.sh --http`** works with `ws://` on port 8442.
 
 ### static/camera.html
 
@@ -137,6 +139,8 @@ Checks `localStorage` for a saved role. If found, redirects immediately. Otherwi
 - **Buffer growth**: The viewer's `SourceBuffer` grows indefinitely. On long sessions this may cause memory pressure on old iPads. Solution (not yet implemented): periodically call `sourceBuffer.remove()` to trim old data.
 - **Latency spikes**: If the WiFi is congested, chunks queue up and latency increases. There's no mechanism to drop old chunks and snap to live.
 - **No authentication**: Anyone on the home WiFi can access the server. Acceptable for home use; not for shared networks.
+- **OpenSSL self-signed**: Browsers show warnings until each device trusts the cert (install from `/setup/ca.pem`). Regenerate if LAN IP changes (same as mkcert leaf).
+- **`--http` mode**: Only **`http://localhost:8442`** is a safe bet for **`getUserMedia`**; LAN HTTP URLs usually **block** the camera.
 - **`run.sh` git pull**: Each start runs `git pull --ff-only` when `.git` exists. If you are on a detached HEAD, have diverged from `origin`, or are offline, pull may fail — the script warns and still starts. Use `./run.sh --skip-git-pull` to avoid touching git.
 
 ---

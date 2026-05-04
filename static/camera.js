@@ -6,6 +6,9 @@ const viewerCount = document.getElementById('viewer-count');
 const errorBox = document.getElementById('error-box');
 const soundBarsContainer = document.getElementById('sound-bars');
 
+/** ws:// on HTTP (e.g. --http local test); wss:// on HTTPS */
+const WS_SCHEME = location.protocol === 'https:' ? 'wss:' : 'ws:';
+
 let stream = null;
 let ws = null;
 let recorder = null;
@@ -54,7 +57,7 @@ function connectWebSocket() {
     clearTimeout(reconnectTimer);
 
     setStatus('connecting', 'Connecting to server…');
-    ws = new WebSocket(`wss://${location.host}/ws/camera`);
+    ws = new WebSocket(`${WS_SCHEME}//${location.host}/ws/camera`);
     ws.binaryType = 'arraybuffer';
 
     ws.onopen = () => {
