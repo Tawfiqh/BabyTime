@@ -85,6 +85,12 @@ If you install to **`/usr/local/bin`** (menu **2** or `--install-system`), the s
 
 Example: `./build-and-run.sh` → choose **1** → confirm PATH → new terminal → `babytime`. Or once: `./build-and-run.sh --install-user --add-to-path`.
 
+### install.sh, run.sh, and scripts/ensure-certs.sh
+
+**install.sh** installs `uv`, syncs the venv from `requirements.txt`, then if `mkcert` is on `PATH` it runs **`scripts/ensure-certs.sh`**, which creates `certs/cert.pem` and `certs/key.pem` when they are missing (`mkcert -install` once per machine, then `mkcert` for the leaf cert). If `mkcert` is not installed yet, install prints a skip message — install **brew** packages only for `uv`, not for `mkcert`.
+
+**run.sh** ensures the venv exists, then ensures certs exist by calling **`scripts/ensure-certs.sh`** unless you pass **`--skip-mkcert`**. With `--skip-mkcert`, if cert files are missing the script exits with an error instead of calling mkcert (useful when you will supply certs yourself or run without TLS later). Any other arguments are passed through to `server.py` (e.g. `./run.sh --reload` if you add that to the server entrypoint later).
+
 ### server.py
 
 Runs the FastAPI app. Three main responsibilities:
