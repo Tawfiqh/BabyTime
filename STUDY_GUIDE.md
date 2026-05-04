@@ -89,7 +89,7 @@ Example: `./build-and-run.sh` → choose **1** → confirm PATH → new terminal
 
 **install.sh** installs `uv`, syncs the venv from `requirements.txt`, then if `mkcert` is on `PATH` it runs **`scripts/ensure-certs.sh`**, which creates `certs/cert.pem` and `certs/key.pem` when they are missing (`mkcert -install` once per machine, then `mkcert` for the leaf cert). If `mkcert` is not installed yet, install prints a skip message — install **brew** packages only for `uv`, not for `mkcert`.
 
-**run.sh** runs **`git pull --ff-only`** first when `.git` exists and `git` is on `PATH` (skips for a plain tarball or no git). If pull fails (offline, local commits, non-fast-forward), it prints a warning and continues. Pass **`--skip-git-pull`** to skip. Then it ensures the venv exists, then ensures certs via **`scripts/ensure-certs.sh`** unless you pass **`--skip-mkcert`**. With `--skip-mkcert`, if cert files are missing the script exits with an error instead of calling mkcert. Any other arguments are passed through to `server.py` (e.g. `./run.sh --reload` if you add that to the server entrypoint later).
+**run.sh** runs **`git pull --ff-only`** first when `.git` exists and `git` is on `PATH` (skips for a plain tarball or no git). If pull fails (offline, local commits, non-fast-forward), it prints a warning and continues. Pass **`--skip-git-pull`** to skip. Then it ensures the venv exists, then if cert files are missing it runs **`scripts/ensure-certs.sh`** unless you pass **`--skip-mkcert`** (then it only warns and continues — `server.py` will still error if certs are absent). Any other arguments are passed through to `server.py` (e.g. `./run.sh --reload` if you add that to the server entrypoint later).
 
 ### server.py
 

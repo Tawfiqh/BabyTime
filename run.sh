@@ -48,12 +48,12 @@ export PATH="$HOME/.local/bin:$PATH"
 if [ ! -f "certs/cert.pem" ] || [ ! -f "certs/key.pem" ]; then
   if (( SKIP_MKCERT )); then
     echo "" >&2
-    echo "ERROR: certs/cert.pem or certs/key.pem missing and --skip-mkcert was set." >&2
-    echo "  Remove --skip-mkcert to generate certs, or run: bash install.sh (with mkcert installed)" >&2
+    echo "WARNING: certs/cert.pem or certs/key.pem missing; --skip-mkcert set — not running mkcert." >&2
+    echo "  Add cert files, remove --skip-mkcert, or run: bash install.sh (with mkcert installed)" >&2
     echo "" >&2
-    exit 1
+  else
+    bash "$SCRIPT_DIR/scripts/ensure-certs.sh"
   fi
-  bash "$SCRIPT_DIR/scripts/ensure-certs.sh"
 fi
 
 # ── 3. Print access URLs ──────────────────────────────────────────────────────
