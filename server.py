@@ -9,6 +9,9 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Requ
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from dotenv import load_dotenv
+
+load_dotenv()  # reads variables from a .env file and sets them in os.environ
 
 app = FastAPI()
 
@@ -141,23 +144,23 @@ async def serve_ca_cert():
 
 @app.get("/")
 async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request, "baby_name": baby_name})
+    return templates.TemplateResponse(request=request, name="index.html", context={"baby_name": baby_name})
 
 @app.get("/viewer.html")
 async def viewer(request: Request):
-    return templates.TemplateResponse("viewer.html", {"request": request, "baby_name": baby_name})
+    return templates.TemplateResponse(request=request, name="viewer.html", context={"baby_name": baby_name})
 
 @app.get("/camera.html")
 async def camera(request: Request):
-    return templates.TemplateResponse("camera.html", {"request": request, "baby_name": baby_name})
+    return templates.TemplateResponse(request=request, name="camera.html", context={"baby_name": baby_name})
 
 @app.get("/slowviewer.html")
 async def slowviewer(request: Request):
-    return templates.TemplateResponse("slowviewer.html", {"request": request, "baby_name": baby_name})
+    return templates.TemplateResponse(request=request, name="slowviewer.html", context={"baby_name": baby_name})
 
 @app.get("/setup.html")
 async def setup(request: Request):
-    return templates.TemplateResponse("setup.html", {"request": request, "baby_name": baby_name})
+    return templates.TemplateResponse(request=request, name="setup.html", context={"baby_name": baby_name})
 
 
 # ── Static Files ───────────────────────────────────────────────────────────────
@@ -169,7 +172,7 @@ app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 if __name__ == "__main__":
     import uvicorn
-
+    port_number = os.getenv("PORT_NUMBER", 8443)
     cert = Path("certs/cert.pem")
     key = Path("certs/key.pem")
     if not cert.exists() or not key.exists():
@@ -177,18 +180,18 @@ if __name__ == "__main__":
         print("Run the mkcert setup steps in README-setup.md first.")
         sys.exit(1)
 
-    print("BabyTime starting on https://0.0.0.0:8443")
-    print("Local:   https://localhost:8443")
+    print(f"BabyTime starting on https://0.0.0.0:{port_number}")
+    print(f"Local:   https://localhost:{port_number}")
     try:
         lan_ip = subprocess.check_output(["ipconfig", "getifaddr", "en0"]).decode().strip()
-        print(f"Network: https://{lan_ip}:8443")
+        print(f"Network: https://{lan_ip}:{port_number}")
     except Exception:
         pass
 
     uvicorn.run(
         "server:app",
         host="0.0.0.0",
-        port=8443,
+        port=port_number,
         ssl_keyfile="certs/key.pem",
         ssl_certfile="certs/cert.pem",
         reload=False,
