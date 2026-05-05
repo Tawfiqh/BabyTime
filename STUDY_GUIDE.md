@@ -17,6 +17,13 @@ A self-hosted baby monitor web app. A MacBook runs a Python server on the home W
 7. Viewer devices open the same URL, choose "Viewer".
 8. Their browser connects via WebSocket, receives the binary chunks, and feeds them into the `ManagedMediaSource` API — the `<video>` element plays the live stream.
 
+### Optional: global `babytime` command (from a git clone)
+
+1. Run `./build-and-run.sh` in the repo. With an interactive terminal it prints status, then a short numbered list (no full-screen UI): **1** symlink to `~/.local/bin` then run (optional PATH prompt), **2** symlink to `/usr/local/bin` then run, **3** run from the clone only (default), **4** exit. Without a TTY or when you pass flags, it skips the menu. Flags: `--install-user`, `--install-system`, `--add-to-path` (see `./build-and-run.sh --help`).
+2. `bin/babytime` is a tiny script that `exec`s the repo’s `run.sh`, so the symlink always points at the clone (not at a Python binary inside `.venv`). It resolves **`BASH_SOURCE` through symlinks** (e.g. `~/.local/bin/babytime` → `…/repo/bin/babytime`) so `ROOT` is the real repo, not `~/.local`.
+3. **Best practice for “where to symlink”**: prefer **`~/.local/bin`** (user-level, no root). It matches how many tools (uv, pip, cargo) expect user installs. Use **`/usr/local/bin`** only when you want the command for every user on the machine and accept `sudo`.
+4. **PATH**: many Linux desktops already put `~/.local/bin` on `PATH`; macOS often does not. Pass `--add-to-path` to append a small guarded block to `~/.zshrc` or `~/.bashrc`, or add `export PATH="$HOME/.local/bin:$PATH"` once yourself.
+
 ---
 
 ## Key Decisions & Why
@@ -29,13 +36,13 @@ A self-hosted baby monitor web app. A MacBook runs a Python server on the home W
 - **Tradeoff**: Server uses bandwidth proportional to `stream_bitrate × viewer_count`. Fine for a home LAN, would not scale to the internet.
 - **Analogy**: Like a radio station broadcasting to all listeners, rather than each listener calling the studio directly.
 
-### HTTPS with mkcert (not self-signed certs)
+### HTTPS with mkcert or OpenSSL (no root required for OpenSSL)
 
-- **Chosen**: `mkcert` creates a locally-trusted CA that devices can opt into trusting.
-- **Alternative**: Self-signed cert — browser shows an error that cannot be bypassed for `getUserMedia` on iOS.
-- **Why this**: iOS Safari requires HTTPS or `localhost` to allow camera/mic access. mkcert creates a cert that iOS can actually trust. We include both the WiFi IP and the Mac Bonjour hostname (`<Computer-Name>.local`) so devices can connect with a stable local name.
-- **Tradeoff**: One-time setup per iOS device (profile install + trust toggle in Settings).
-- **Analogy**: Like saving a friend's contact by name instead of memorizing a phone number that might change.
+- **Chosen**: Prefer **`mkcert`** when installed — creates a locally-trusted CA (needs `mkcert -install` once, which may prompt for admin on some setups). If mkcert is missing or **`--skip-mkcert`** is used, **`scripts/ensure-certs.sh`** falls back to **`openssl`** and writes **self-signed** `certs/cert.pem` + `certs/key.pem` and copies the leaf to **`certs/ca.pem`** for `/setup/ca.pem`. No `brew install` from scripts.
+- **Alternative**: HTTP-only dev server — **`./run.sh --http`** runs Uvicorn on **port 8442** without TLS. **`camera.js` / `viewer.js`** use **`ws://`** when the page is `http://` so WebSockets still work. Browsers only allow **`getUserMedia` on `http://localhost`** (not LAN IPs), so HTTP mode is mainly for **local “does it run?”** checks.
+- **Why this**: Locked-down or no-root machines often still have **`openssl`**. Self-signed HTTPS **runs** everywhere; iOS still needs the user to **install and trust** the cert (same flow as mkcert, but the browser shows warnings until trusted).
+- **Tradeoff**: OpenSSL certs are **not** auto-trusted like mkcert’s CA. **`--http`** does not replace HTTPS for real baby-monitor use on phones over WiFi.
+- **Analogy**: mkcert is a hall pass everyone recognizes; OpenSSL is a handwritten note you must get stamped at the office.
 
 ### UV + `pyproject.toml`
 
@@ -53,12 +60,20 @@ A self-hosted baby monitor web app. A MacBook runs a Python server on the home W
 - **Why this**: User preference for Python; FastAPI has native async WebSocket support; fits the project's existing Python tooling.
 - **Tradeoff**: Slightly more ceremony for WebSockets vs. Socket.IO, but no meaningful difference for this use case.
 
-### Port 8443 (not 80 or 443)
+### User-level symlink (`~/.local/bin`) vs system-wide (`/usr/local/bin`)
 
-- **Chosen**: Port 8443.
+- **Chosen**: Default recommendation is `~/.local/bin/babytime` → `bin/babytime` in the repo.
+- **Alternative**: `/usr/local/bin/babytime` with `sudo`.
+- **Why**: User-writable directories avoid root for day-to-day dev tools; fewer foot-guns than editing system paths. `/usr/local/bin` is still offered for shared machines or habit.
+- **Tradeoff**: Each user who wants `babytime` on PATH runs the installer once (or shares a system link with sudo).
+- **Analogy**: A shortcut in your own desk drawer versus pinning a notice on the office bulletin board everyone shares.
+
+### Port 8443 (HTTPS) and 8442 (HTTP dev)
+
+- **Chosen**: HTTPS on **8443** by default; optional **`--http`** on **8442** for no-TLS local testing.
 - **Why not 80**: HTTP on port 80 cannot serve camera pages — iOS Safari blocks `getUserMedia` on HTTP non-localhost origins.
 - **Why not 443**: Requires `sudo` on macOS (ports below 1024 are privileged).
-- **Tradeoff**: Users must type `:8443` in the URL.
+- **Tradeoff**: Users must type `:8443` (or `:8442` in HTTP mode).
 
 ### MediaRecorder + ManagedMediaSource (not HLS)
 
@@ -71,6 +86,20 @@ A self-hosted baby monitor web app. A MacBook runs a Python server on the home W
 
 ## How Each Piece Works
 
+### build-and-run.sh and bin/babytime
+
+**build-and-run.sh** prints symlink status, then either a small **1–4** menu (interactive TTY, no flags) or goes straight through when stdin is not a TTY or when you pass `--install-user` / `--install-system` / `--add-to-path`. Then it runs `run.sh`. **bin/babytime** resolves its real path (when invoked via a symlink in `PATH`) and `exec`s `run.sh` from the repo root.
+
+If you install to **`/usr/local/bin`** (menu **2** or `--install-system`), the script warns when that directory is missing from `PATH` — not when `~/.local/bin` is on `PATH` but `/usr/local/bin` is not (those are independent).
+
+Example: `./build-and-run.sh` → choose **1** → confirm PATH → new terminal → `babytime`. Or once: `./build-and-run.sh --install-user --add-to-path`.
+
+### install.sh, run.sh, and scripts/ensure-certs.sh
+
+**install.sh** installs `uv`, syncs the venv, then runs **`scripts/ensure-certs.sh`** if cert files are missing. That script uses **mkcert** when available (and not disabled), otherwise **OpenSSL** self-signed certs (needs `openssl` on PATH — no root). If cert creation fails, install prints a message but the **Python install still completes**.
+
+**run.sh** optionally **`git pull --ff-only`**, ensures the venv, then cert logic: **`--http`** skips TLS and starts **`server.py --http`** (port 8442). Otherwise missing certs trigger **`ensure-certs.sh`**; with **`--skip-mkcert`**, mkcert is never used (OpenSSL path only). Pass **`--skip-git-pull`** to skip pull. Other args go to **`server.py`** (e.g. **`--http`** if you invoke Python directly).
+
 ### server.py
 
 Runs the FastAPI app. Four main responsibilities:
@@ -82,6 +111,8 @@ Runs the FastAPI app. Four main responsibilities:
 The server reads the `BABY_NAME` environment variable (defaults to "BabyTime") and passes it to all HTML templates. This allows the user to customize the app title via `BABY_NAME=Emma python server.py`.
 
 Example: Camera sends 50KB chunk → server loops over 3 connected viewers → sends 50KB to each.
+
+**`static/camera.js` / `static/viewer.js`**: WebSocket URL uses **`ws://`** when the page is served over **HTTP** and **`wss://`** over **HTTPS**, so **`./run.sh --http`** works with `ws://` on port 8442.
 
 ### static/camera.html
 
@@ -132,6 +163,9 @@ Example: `BABY_NAME=Emma python server.py` → all pages display "Emma" in the m
 - **Buffer growth**: The viewer's `SourceBuffer` grows indefinitely. On long sessions this may cause memory pressure on old iPads. Solution (not yet implemented): periodically call `sourceBuffer.remove()` to trim old data.
 - **Latency spikes**: If the WiFi is congested, chunks queue up and latency increases. There's no mechanism to drop old chunks and snap to live.
 - **No authentication**: Anyone on the home WiFi can access the server. Acceptable for home use; not for shared networks.
+- **OpenSSL self-signed**: Browsers show warnings until each device trusts the cert (install from `/setup/ca.pem`). Regenerate if LAN IP changes (same as mkcert leaf).
+- **`--http` mode**: Only **`http://localhost:8442`** is a safe bet for **`getUserMedia`**; LAN HTTP URLs usually **block** the camera.
+- **`run.sh` git pull**: Each start runs `git pull --ff-only` when `.git` exists. If you are on a detached HEAD, have diverged from `origin`, or are offline, pull may fail — the script warns and still starts. Use `./run.sh --skip-git-pull` to avoid touching git.
 
 ---
 

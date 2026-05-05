@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Entry point when BabyTime is on PATH. Dispatches to the repo's run.sh.
+# BASH_SOURCE may be ~/.local/bin/babytime (a symlink); resolve to the real repo.
+# Abort on error (-e), unset variables (-u), or a failing command in a pipeline (-o pipefail).
+set -euo pipefail
+
+# Path to this script (may be a symlink, e.g. ~/.local/bin/babytime -> repo/bin/babytime).
+_here="${BASH_SOURCE[0]}"
+
+if command -v python3 &>/dev/null; then
+  # realpath follows symlinks to the real file; dirname twice goes bin/ -> repo root.
+  ROOT="$(python3 -c 'import os, sys; print(os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[1]))))' "$_here")"
+else
+  # No Python: walk symlink chain by hand, then parent of bin/ is repo root.
+  while [[ -L "$_here" ]]; do
+    _link="$(readlink "$_here")"
+    if [[ "$_link" != /* ]]; then
+      _here="$(cd "$(dirname "$_here")" && pwd)/$_link"
+    else
+      _here="$_link"
+    fi
+  done
+  ROOT="$(cd "$(dirname "$_here")/.." && pwd)"
+fi
+
+# Replace this process so signals and exit codes match run.sh.
+exec bash "$ROOT/run.sh" "$@"

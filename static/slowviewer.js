@@ -22,10 +22,10 @@ async function fetchSnapshot() {
     snapshotImage.src = data.image;
     snapshotImage.style.display = 'block';
 
-    const ts = new Date(data.timestamp);
-    document.getElementById('snapshot-timestamp').textContent = `Snapshot: ${ts.toLocaleTimeString()}`;
+    const screenShotTimeStamp = new Date(data.timestamp);
+    document.getElementById('snapshot-timestamp').textContent = `Snapshot: ${screenShotTimeStamp.toLocaleTimeString()}`;
 
-    setStatus('live', 'Live');
+    setStatus('live', 'Snapshot updated');
   } catch (err) {
     console.error('Snapshot fetch failed:', err);
     setStatus('error', 'Connection error');

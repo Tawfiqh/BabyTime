@@ -37,4 +37,9 @@ fi
 echo "Syncing dependencies (pyproject.toml / uv.lock)..."
 uv sync
 
+# ── 4. TLS certs (mkcert if available, else OpenSSL; do not fail whole install) ─
+if ! bash "$SCRIPT_DIR/scripts/ensure-certs.sh"; then
+  echo "Could not create TLS certs (need openssl or mkcert). Run: bash scripts/ensure-certs.sh after installing openssl."
+fi
+
 echo "Done."

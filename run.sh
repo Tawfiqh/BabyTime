@@ -1,14 +1,40 @@
 #!/usr/bin/env bash
 # Start the BabyTime server.
 # Runs install.sh first if the virtual environment is missing.
+# TLS: scripts/ensure-certs.sh (mkcert if available, else OpenSSL — no root).
+# --skip-mkcert: never use mkcert; use OpenSSL self-signed when certs missing.
+# --http: plain HTTP on port 8442 (local testing; camera on localhost only).
+# By default runs git pull --ff-only when .git exists; use --skip-git-pull to skip.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# ── 1. Install dependencies if needed ────────────────────────────────────────
-# Always run install on a fresh clone (no .venv).  If everything is up to date
-# uv finishes in under a second, so there's no reason to skip it.
+SKIP_MKCERT=0
+SKIP_GIT_PULL=0
+USE_HTTP=0
+PY_ARGS=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --skip-mkcert) SKIP_MKCERT=1; shift ;;
+    --skip-git-pull) SKIP_GIT_PULL=1; shift ;;
+    --http) USE_HTTP=1; shift ;;
+    *) PY_ARGS+=("$1"); shift ;;
+  esac
+done
+
+# ── 0. Sync with remote (fast-forward only) ───────────────────────────────────
+
+if (( ! SKIP_GIT_PULL )) && [[ -d .git ]] && command -v git &>/dev/null; then
+  echo ""
+  echo "  git pull --ff-only …"
+  if ! git pull --ff-only; then
+    echo "  Warning: git pull failed (offline, local commits, or non-ff?). Continuing." >&2
+  fi
+  echo ""
+fi
+
+# ── 1. Install dependencies if needed ───────────────────────────────────────────
 
 if [ ! -d ".venv" ]; then
   echo "Virtual environment not found — running install.sh..."
@@ -18,51 +44,30 @@ elif ! .venv/bin/python -c "import fastapi, uvicorn" &>/dev/null; then
   bash "$SCRIPT_DIR/install.sh"
 fi
 
-
-# Make sure uv-installed uv is on PATH if it was just installed.
 export PATH="$HOME/.local/bin:$PATH"
 uv sync
 
 
-# ── 2. Check SSL certificates ─────────────────────────────────────────────────
+# ── 2. TLS certificates (skip entirely in --http mode) ───────────────────────
 
-if [ ! -f "certs/cert.pem" ] || [ ! -f "certs/key.pem" ]; then
+if (( USE_HTTP )); then
   echo ""
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo "  🔐 SSL certificates not found in certs/" - installing with brew install mkcert and mkcert -install
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "  HTTP mode (--http): not generating TLS certs."
   echo ""
-  echo "  One-time setup (brew install mkcert and mkcert -install):"
-  echo ""
-  brew install mkcert
-  mkcert -install
-
-  LAN_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "YOUR_LAN_IP")
-  mkdir -p certs
-  mkcert -cert-file certs/cert.pem -key-file certs/key.pem \
-    localhost 127.0.0.1 ${LAN_IP}
-
-  echo "  Certificates installed in certs/"
-  echo ""
+elif [ ! -f "certs/cert.pem" ] || [ ! -f "certs/key.pem" ]; then
+  if (( SKIP_MKCERT )); then
+    BABYTIME_NO_MKCERT=1 bash "$SCRIPT_DIR/scripts/ensure-certs.sh"
+  else
+    bash "$SCRIPT_DIR/scripts/ensure-certs.sh"
+  fi
 fi
 
-# ── 3. Print access URLs ──────────────────────────────────────────────────────
+# ── 3. Start the server ───────────────────────────────────────────────────────
 
-LAN_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "")
+# The shell already ate --http in the option parser; forward it to server.py explicitly.
+(( USE_HTTP )) && PY_ARGS=(--http "${PY_ARGS[@]}")
 
-echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  BabyTime starting on port 8443 (HTTPS)"
-echo ""
-echo "  This Mac:  https://localhost:8443"
-if [ -n "$LAN_IP" ]; then
-  echo "  Network:   https://${LAN_IP}:8443"
-  echo ""
-  echo "  First time on iOS? Visit https://${LAN_IP}:8443/setup.html"
-fi
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
-
-# ── 4. Start the server ───────────────────────────────────────────────────────
-
-exec .venv/bin/python server.py
+# Pass through any extra CLI args to server.py, or call it with no extras if none remain.
+[[ ${#PY_ARGS[@]} -gt 0 ]] \
+  && exec .venv/bin/python server.py "${PY_ARGS[@]}" \
+  || exec .venv/bin/python server.py
