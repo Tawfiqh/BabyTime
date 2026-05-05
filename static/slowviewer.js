@@ -4,6 +4,7 @@ const statusText = document.getElementById('status-text');
 const fetchStatus = document.getElementById('fetch-status');
 
 let fetchTimer = null;
+let audioChart = null;
 
 function setStatus(state, text) {
   statusDot.className = state;
@@ -49,6 +50,7 @@ async function fetchAudioLevel() {
 
     const ts = new Date(data.timestamp);
     fetchStatus.textContent = `Updated: ${ts.toLocaleTimeString()}`;
+    audioChart.push(data.rms, data.peak, ts);
   } catch (err) {
     console.error('Audio level fetch failed:', err);
   }
@@ -64,4 +66,5 @@ async function pollData() {
   }, 5000);
 }
 
+audioChart = new AudioLevelChart('audio-chart', 120); // 10 min at 5s intervals
 pollData();

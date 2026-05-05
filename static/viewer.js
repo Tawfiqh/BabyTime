@@ -18,6 +18,8 @@ let reconnectTimer = null;
 let hasVideo = false;
 let hasSeekedToLive = false;
 let audioVisualizer = null;
+let viewerAudioChart = null;
+let lastLevelTs = 0;
 
 /** ws:// on HTTP (e.g. --http local test); wss:// on HTTPS */
 const WS_SCHEME = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -374,6 +376,20 @@ function initAudioMeter() {
     console.log('[viewer.js] Calling audioVisualizer.start()');
     audioVisualizer.start();
     console.log('[viewer.js] audioVisualizer.start() completed');
+
+    viewerAudioChart = new AudioLevelChart('viewer-audio-chart', 600);
+    audioVisualizer.onLevelUpdate = (rms, peak) => {
+      const now = Date.now();
+      if (now - lastLevelTs < 1000) return;
+      lastLevelTs = now;
+
+      document.getElementById('rms-bar').style.width = (rms / 255 * 100) + '%';
+      document.getElementById('rms-value').textContent = rms;
+      document.getElementById('peak-bar').style.width = (peak / 255 * 100) + '%';
+      document.getElementById('peak-value').textContent = peak;
+
+      viewerAudioChart.push(rms, peak);
+    };
   } catch (err) {
     console.error('[viewer.js] Audio meter initialization failed:', err);
     console.warn('Audio meter not available:', err);
@@ -387,6 +403,9 @@ function stopAudioMeter() {
     audioVisualizer.stop();
     audioVisualizer = null;
     console.log('[viewer.js] audioVisualizer stopped and cleared');
+    viewerAudioChart?.destroy();
+    viewerAudioChart = null;
+    lastLevelTs = 0;
   } else {
     console.log('[viewer.js] audioVisualizer is null, nothing to stop');
   }

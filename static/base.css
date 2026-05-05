@@ -474,3 +474,62 @@ h1 {
 .go-btn:hover {
     background: #3a7a3a;
 }
+
+/* ==============================
+   Shared Audio Level Bars
+   ============================== */
+
+.audio-level-display {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.audio-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.audio-bar-label {
+    width: 40px;
+    font-size: 0.85rem;
+    color: #aaa;
+    font-weight: 500;
+}
+
+.audio-bar-container {
+    flex: 1;
+    height: 2rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 0.25rem;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.audio-bar-fill {
+    height: 100%;
+    background: linear-gradient(to right, #4caf50, #ffc107, #ff6b6b);
+    transition: width 0.2s ease-out;
+}
+
+.audio-bar-value {
+    width: 35px;
+    text-align: right;
+    font-size: 0.85rem;
+    color: #ddd;
+    font-weight: 500;
+}
+
+.audio-chart-container {
+    margin-top: 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    padding: 1rem;
+}
+
+.audio-chart-canvas {
+    width: 100%;
+    height: 160px;
+}

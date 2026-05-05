@@ -15,6 +15,7 @@ class AudioVisualizer {
     this.analyser = null;
     this.sourceNode = null;
     this.animationId = null;
+    this.onLevelUpdate = null;
   }
 
   start() {
@@ -51,6 +52,7 @@ class AudioVisualizer {
       console.log('[AudioVisualizer] Bars ensured');
 
       this.stopAnimationLoop();
+      this.hasLoggedFirstFrame = false;
       this.animationId = requestAnimationFrame(() => this.renderFrame());
       console.log('[AudioVisualizer] Animation loop started, animationId:', this.animationId);
     } catch (err) {
@@ -99,6 +101,12 @@ class AudioVisualizer {
       const average = sum / samplesPerBar;
       const height = (average / 255) * 1;
       bars[i].style.height = Math.max(0.1, height) + 'rem';
+    }
+
+    if (this.onLevelUpdate) {
+      const rms = Math.round(Math.sqrt(dataArray.reduce((s, v) => s + v * v, 0) / dataArray.length));
+      const peak = Math.max(...dataArray);
+      this.onLevelUpdate(rms, peak);
     }
 
     this.animationId = requestAnimationFrame(() => this.renderFrame());

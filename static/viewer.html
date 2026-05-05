@@ -5,7 +5,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{{ baby_name }} – Viewer</title>
-  <link rel="stylesheet" href="base.css?v=1">
+  <link rel="stylesheet" href="base.css?v=2">
+  <style>
+    #audio-panel {
+      max-width: 600px;
+      margin: 1rem auto;
+      padding: 0 1.5rem;
+    }
+  </style>
 
   <style>
     #overlay {
@@ -138,9 +145,33 @@
     <ul id="mime-support-list"></ul>
   </div>
 
+  <div id="audio-panel">
+    <div class="audio-level-display">
+      <div class="audio-bar">
+        <div class="audio-bar-label">RMS</div>
+        <div class="audio-bar-container">
+          <div class="audio-bar-fill" id="rms-bar" style="width: 0%"></div>
+        </div>
+        <div class="audio-bar-value" id="rms-value">0</div>
+      </div>
+      <div class="audio-bar">
+        <div class="audio-bar-label">Peak</div>
+        <div class="audio-bar-container">
+          <div class="audio-bar-fill" id="peak-bar" style="width: 0%"></div>
+        </div>
+        <div class="audio-bar-value" id="peak-value">0</div>
+      </div>
+    </div>
+    <div class="audio-chart-container">
+      <canvas id="viewer-audio-chart" class="audio-chart-canvas"></canvas>
+    </div>
+  </div>
+
   <!-- Bump ?v= when these scripts change to force cache invalidation. -->
-  <script src="/audioVisualizer.js?v=2.1"></script>
-  <script src="/viewer.js?v=3.1"></script>
+  <script src="/chart.umd.min.js"></script>
+  <script src="/audioChart.js?v=1"></script>
+  <script src="/audioVisualizer.js?v=2.2"></script>
+  <script src="/viewer.js?v=3.2"></script>
 </body>
 
 </html>
