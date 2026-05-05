@@ -142,11 +142,30 @@ A self-contained iOS setup guide. Fetches `/api/status` to detect if the cert is
 
 Checks `localStorage` for a saved role. If found, redirects immediately. Otherwise shows three role cards (Camera, Viewer, Slow Viewer). Saves the choice so the user only picks once.
 
+### static/base.css
+
+Shared styles for every page, including **`viewer-page-stack`**, slow-viewer snapshot, live-viewer overlay, MIME debug panel, and audio level bars. HTML templates do not use `<style>` blocks or inline `style=""` for layout — everything lives here so role pages stay consistent and cache-friendly (`base.css?v=4`).
+
 ### static/menubar.html
 
 A shared Jinja2 template that is included at the top of every page (via `{% include 'menubar.html' %}`). Displays the baby name on the left and a home button (🏠) on the right. The home button clears the stored role from `localStorage` and navigates back to the index page, allowing the user to select a different role.
 
 Example: If `baby_name='Emma'`, every page shows "Emma" in the top-left corner and a home button in the top-right.
+
+### static/shared-utils.js
+
+A shared utility file loaded by all three role pages (camera, viewer, slowviewer) **before** their page-specific scripts. Provides four things that were previously copy-pasted:
+
+- **`WS_SCHEME`** — `ws://` or `wss://` based on the current page protocol.
+- **`setStatus(state, text)`** — updates the `#status-dot` CSS class and `#status-text` content; all three pages use the same element IDs.
+- **`updateAudioBars(rms, peak)`** — converts raw 0–255 RMS/Peak values to percentages and updates the `#rms-bar`, `#rms-value`, `#peak-bar`, `#peak-value` elements.
+- **`fetchAudioLevel(chart, { onFetched })`** — fetches `/api/camera/audio-level`, calls `updateAudioBars`, pushes the point to the given `AudioLevelChart`, then optionally calls `onFetched(data)` for page-specific logic (e.g. slowviewer uses this to update its timestamp label).
+
+Example: `fetchAudioLevel(myChart, { onFetched: d => label.textContent = d.timestamp })`.
+
+### static/audio_level_bars.html
+
+A Jinja2 partial template included in `viewer.html` and `slowviewer.html` via `{% include 'audio_level_bars.html' %}`. Contains the shared `<div class="audio-level-display">` markup with RMS and Peak bar elements. Eliminates the byte-for-byte duplicate HTML that previously existed in both files.
 
 ### Jinja2 Templating & Baby Name Configuration
 

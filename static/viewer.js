@@ -5,10 +5,9 @@ const video = document.getElementById('stream');
 const overlay = document.getElementById('overlay');
 const overlayMsg = document.getElementById('overlay-msg');
 const overlayIcon = document.getElementById('overlay-icon');
-const dot = document.getElementById('status-dot');
-const statusText = document.getElementById('status-text');
 const unmuteBtn = document.getElementById('unmute-btn');
 const soundBarsContainer = document.getElementById('sound-bars');
+const mimeSupportPanel = document.getElementById('mimeSupportPanel');
 
 let ws = null;
 let mediaSource = null;
@@ -19,10 +18,7 @@ let hasVideo = false;
 let hasSeekedToLive = false;
 let audioVisualizer = null;
 let viewerAudioChart = null;
-let lastLevelTs = 0;
-
-/** ws:// on HTTP (e.g. --http local test); wss:// on HTTPS */
-const WS_SCHEME = location.protocol === 'https:' ? 'wss:' : 'ws:';
+let viewerAudioPollTimer = null;
 
 // ==============================
 // Setup mime types
@@ -61,13 +57,8 @@ function getSupportedMime() {
 }
 
 // ==============================
-// Setup status & Overlay - TBC refactor to different file
+// Overlay
 // ==============================
-function setStatus(state, text) {
-  dot.className = state;
-  statusText.textContent = text;
-}
-
 function showOverlay(icon, msg) {
   overlayIcon.textContent = icon;
   overlayMsg.textContent = msg;
@@ -337,6 +328,7 @@ function connect() {
 // ==============================
 // INTIALISATION
 // ==============================
+viewerAudioChart = new AudioLevelChart('viewer-audio-chart', 600); // 10 min at 5s intervals
 connect();
 
 
@@ -347,6 +339,24 @@ connect();
 function unmute() {
   video.muted = false;
   unmuteBtn.classList.remove('visible');
+}
+
+// ==============================
+// Audio Level Polling
+// ==============================
+function fetchViewerAudioLevel() {
+  return fetchAudioLevel(viewerAudioChart);
+}
+
+function startViewerAudioPolling() {
+  if (viewerAudioPollTimer) return;
+  fetchViewerAudioLevel();
+  viewerAudioPollTimer = setInterval(fetchViewerAudioLevel, 5000);
+}
+
+function stopViewerAudioPolling() {
+  clearInterval(viewerAudioPollTimer);
+  viewerAudioPollTimer = null;
 }
 
 // ==============================
@@ -377,19 +387,7 @@ function initAudioMeter() {
     audioVisualizer.start();
     console.log('[viewer.js] audioVisualizer.start() completed');
 
-    viewerAudioChart = new AudioLevelChart('viewer-audio-chart', 600);
-    audioVisualizer.onLevelUpdate = (rms, peak) => {
-      const now = Date.now();
-      if (now - lastLevelTs < 1000) return;
-      lastLevelTs = now;
-
-      document.getElementById('rms-bar').style.width = (rms / 255 * 100) + '%';
-      document.getElementById('rms-value').textContent = rms;
-      document.getElementById('peak-bar').style.width = (peak / 255 * 100) + '%';
-      document.getElementById('peak-value').textContent = peak;
-
-      viewerAudioChart.push(rms, peak);
-    };
+    startViewerAudioPolling();
   } catch (err) {
     console.error('[viewer.js] Audio meter initialization failed:', err);
     console.warn('Audio meter not available:', err);
@@ -403,9 +401,7 @@ function stopAudioMeter() {
     audioVisualizer.stop();
     audioVisualizer = null;
     console.log('[viewer.js] audioVisualizer stopped and cleared');
-    viewerAudioChart?.destroy();
-    viewerAudioChart = null;
-    lastLevelTs = 0;
+    stopViewerAudioPolling();
   } else {
     console.log('[viewer.js] audioVisualizer is null, nothing to stop');
   }
@@ -439,7 +435,7 @@ function debug_available_apis() {
 }
 
 function renderMimeSupportList() {
-  mimeSupportPanel.style.display = '';
+  mimeSupportPanel?.classList.add('mime-support-panel--visible');
   const listEl = document.getElementById('mime-support-list');
   if (!listEl) return;
   listEl.innerHTML = '';

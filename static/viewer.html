@@ -5,118 +5,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{{ baby_name }} – Viewer</title>
-  <link rel="stylesheet" href="base.css?v=2">
-  <style>
-    #audio-panel {
-      max-width: 600px;
-      margin: 1rem auto;
-      padding: 0 1.5rem;
-    }
-  </style>
-
-  <style>
-    #overlay {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 1rem;
-      pointer-events: none;
-    }
-
-    #overlay-icon {
-      font-size: 3rem;
-    }
-
-    #overlay-msg {
-      font-size: 1rem;
-      color: #888;
-      text-align: center;
-      padding: 0 2rem;
-    }
-
-    #overlay.hidden {
-      display: none;
-    }
-
-    #unmute-btn {
-      display: none;
-    }
-
-    #unmute-btn.visible {
-      display: block;
-    }
-
-    #mimeSupportPanel {
-      position: fixed;
-      bottom: 5rem;
-      left: 1rem;
-      right: 1rem;
-      max-width: 36rem;
-      margin: 0 auto;
-      padding: 0.5rem 0.65rem;
-      background: rgba(12, 12, 16, 0.92);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 0.5rem;
-      font-size: 0.7rem;
-      line-height: 1.35;
-      z-index: 5;
-      pointer-events: none;
-    }
-
-    #mimeSupportPanel h2 {
-      font-size: 0.65rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: #888;
-      margin-bottom: 0.35rem;
-    }
-
-    #mime-support-list {
-      list-style: none;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    }
-
-    #mime-support-list li {
-      display: flex;
-      gap: 0.5rem;
-      align-items: baseline;
-      padding: 0.15rem 0;
-      border-top: 1px solid rgba(255, 255, 255, 0.06);
-    }
-
-    #mime-support-list li:first-child {
-      border-top: none;
-    }
-
-    .mime-flag {
-      flex-shrink: 0;
-      width: 2.5rem;
-      font-weight: 600;
-    }
-
-    .mime-flag.true {
-      color: #81c784;
-    }
-
-    .mime-flag.false {
-      color: #e57373;
-    }
-
-    .mime-type {
-      color: #b0bec5;
-      word-break: break-all;
-    }
-  </style>
+  <link rel="stylesheet" href="base.css?v=4">
 </head>
 
 <body>
   {% include 'menubar.html' %}
 
-  <div id="preview-container">
+  <h1 class="viewer-page-title">📺 Live Viewer</h1>
+
+  <div class="viewer-page-stack">
     <div id="hud">
       <div id="status-dot" class="connecting"></div>
       <div id="status-text">Connecting…</div>
@@ -129,6 +26,23 @@
       <!-- disble remote playback is required for iOS to send the video start event -->
       <!-- Muted is required for autiplay -->
     </video>
+
+    <div id="controls">
+      <button id="unmute-btn" onclick="unmute()">🔊 Tap to unmute</button>
+    </div>
+
+    <div id="mimeSupportPanel" aria-label="ManagedMediaSource MIME type support">
+      <h2>ManagedMediaSource.isTypeSupported</h2>
+      <ul id="mime-support-list"></ul>
+    </div>
+
+    <div class="audio-chart-container">
+      <canvas id="viewer-audio-chart" class="audio-chart-canvas"></canvas>
+    </div>
+
+    <!-- <div id="fetch-status">Updated: never</div> -->
+
+    {% include 'audio_level_bars.html' %}
   </div>
 
   <div id="overlay">
@@ -136,42 +50,12 @@
     <div id="overlay-msg">Waiting for camera…</div>
   </div>
 
-  <div id="controls">
-    <button id="unmute-btn" onclick="unmute()">🔊 Tap to unmute</button>
-  </div>
-
-  <div id="mimeSupportPanel" aria-label="ManagedMediaSource MIME type support" style="display: none;">
-    <h2>ManagedMediaSource.isTypeSupported</h2>
-    <ul id="mime-support-list"></ul>
-  </div>
-
-  <div id="audio-panel">
-    <div class="audio-level-display">
-      <div class="audio-bar">
-        <div class="audio-bar-label">RMS</div>
-        <div class="audio-bar-container">
-          <div class="audio-bar-fill" id="rms-bar" style="width: 0%"></div>
-        </div>
-        <div class="audio-bar-value" id="rms-value">0</div>
-      </div>
-      <div class="audio-bar">
-        <div class="audio-bar-label">Peak</div>
-        <div class="audio-bar-container">
-          <div class="audio-bar-fill" id="peak-bar" style="width: 0%"></div>
-        </div>
-        <div class="audio-bar-value" id="peak-value">0</div>
-      </div>
-    </div>
-    <div class="audio-chart-container">
-      <canvas id="viewer-audio-chart" class="audio-chart-canvas"></canvas>
-    </div>
-  </div>
-
   <!-- Bump ?v= when these scripts change to force cache invalidation. -->
   <script src="/chart.umd.min.js"></script>
   <script src="/audioChart.js?v=1"></script>
+  <script src="/shared-utils.js?v=1"></script>
   <script src="/audioVisualizer.js?v=2.2"></script>
-  <script src="/viewer.js?v=3.2"></script>
+  <script src="/viewer.js?v=3.4"></script>
 </body>
 
 </html>
