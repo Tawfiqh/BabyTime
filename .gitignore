@@ -5,3 +5,5 @@ __pycache__/
 venv/
 .venv/
 .claude/worktrees/*
+Todo2.md
+.DS_Store

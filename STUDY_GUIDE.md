@@ -37,6 +37,15 @@ A self-hosted baby monitor web app. A MacBook runs a Python server on the home W
 - **Tradeoff**: One-time setup per iOS device (profile install + trust toggle in Settings).
 - **Analogy**: Like saving a friend's contact by name instead of memorizing a phone number that might change.
 
+### UV + `pyproject.toml`
+
+- **Chosen**: Dependencies live in `pyproject.toml` (PEP 621). `run.sh` calls `uv sync` so the lockfile and venv stay aligned with that file. There is no separate `requirements.txt` in the repo.
+- **Alternative**: `pip install -e .` with the same `pyproject.toml`, without UV.
+- **Why this**: UV resolves and installs quickly; `pyproject.toml` is the single place to declare the app name, Python version, and runtime packages for tooling and CI.
+- **Tradeoff**: Contributors need `uv` (or they can still use `pip install -e .` against the same `pyproject.toml`).
+- **Gotcha**: `uv pip sync` on a hand-written requirements file that only lists direct dependencies removes transitive packages (for example `starlette`), which breaks imports. Prefer `uv sync`, or a **compiled** lock-style requirements file that lists every package.
+- **Analogy**: Like a `package.json` for Python — one file lists what the app needs to run.
+
 ### Python FastAPI over Node.js
 
 - **Chosen**: Python + FastAPI + Uvicorn.
