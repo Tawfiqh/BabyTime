@@ -142,6 +142,10 @@ A self-contained iOS setup guide. Fetches `/api/status` to detect if the cert is
 
 Checks `localStorage` for a saved role. If found, redirects immediately. Otherwise shows three role cards (Camera, Viewer, Slow Viewer). Saves the choice so the user only picks once.
 
+### static/base.css
+
+Shared styles for every page, including **`viewer-page-stack`**, slow-viewer snapshot, live-viewer overlay, MIME debug panel, and audio level bars. HTML templates do not use `<style>` blocks or inline `style=""` for layout — everything lives here so role pages stay consistent and cache-friendly (`base.css?v=4`).
+
 ### static/menubar.html
 
 A shared Jinja2 template that is included at the top of every page (via `{% include 'menubar.html' %}`). Displays the baby name on the left and a home button (🏠) on the right. The home button clears the stored role from `localStorage` and navigates back to the index page, allowing the user to select a different role.

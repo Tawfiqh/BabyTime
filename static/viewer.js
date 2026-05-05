@@ -9,6 +9,7 @@ const dot = document.getElementById('status-dot');
 const statusText = document.getElementById('status-text');
 const unmuteBtn = document.getElementById('unmute-btn');
 const soundBarsContainer = document.getElementById('sound-bars');
+const mimeSupportPanel = document.getElementById('mimeSupportPanel');
 
 let ws = null;
 let mediaSource = null;
@@ -457,7 +458,7 @@ function debug_available_apis() {
 }
 
 function renderMimeSupportList() {
-  mimeSupportPanel.style.display = '';
+  mimeSupportPanel?.classList.add('mime-support-panel--visible');
   const listEl = document.getElementById('mime-support-list');
   if (!listEl) return;
   listEl.innerHTML = '';

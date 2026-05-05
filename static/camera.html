@@ -5,13 +5,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{{ baby_name }} – Camera</title>
-  <link rel="stylesheet" href="base.css?v=1">
+  <link rel="stylesheet" href="base.css?v=4">
 </head>
 
 <body>
   {% include 'menubar.html' %}
 
-  <div id="preview-container">
+  <h1 class="viewer-page-title">📷 Camera</h1>
+
+  <div class="viewer-page-stack">
     <div id="hud">
       <div id="status-dot" class="connecting"></div>
       <div id="status-text">Starting camera…</div>
@@ -20,12 +22,13 @@
         <div class="sound-bars" id="sound-bars"></div>
       </div>
     </div>
+    <div id="streaming-preview-container">
+      <video id="preview" autoplay playsinline muted></video>
+    </div>
 
-    <video id="preview" autoplay playsinline muted></video>
-  </div>
-
-  <div id="controls">
-    <button onclick="toggleMic()">🎤 Mute mic</button>
+    <div id="controls">
+      <button onclick="toggleMic()">🎤 Mute mic</button>
+    </div>
   </div>
 
   <div id="error-box">
