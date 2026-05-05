@@ -49,7 +49,7 @@ async function fetchAudioLevel() {
     document.getElementById('peak-value').textContent = data.peak;
 
     const ts = new Date(data.timestamp);
-    fetchStatus.textContent = `Updated: ${ts.toLocaleTimeString()}`;
+    fetchStatus.textContent = `Updated Audio Reading: ${ts.toLocaleTimeString()}`;
     audioChart.push(data.rms, data.peak, ts);
   } catch (err) {
     console.error('Audio level fetch failed:', err);
