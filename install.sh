@@ -34,7 +34,7 @@ fi
 # uv skips packages that are already installed at the right version, so this
 # is fast and safe to re-run.
 
-echo "Syncing dependencies from requirements.txt..."
-uv pip install --python .venv/bin/python -r requirements.txt
+echo "Syncing dependencies (pyproject.toml / uv.lock)..."
+uv sync
 
 echo "Done."

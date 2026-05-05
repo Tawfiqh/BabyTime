@@ -1,3 +1,4 @@
-fastapi
-uvicorn[standard]
 aiofiles
+fastapi
+jinja2
+uvicorn[standard]

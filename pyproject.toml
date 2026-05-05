@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "babytime"
+version = "0.1.0"
+description = "Self-hosted baby monitor: FastAPI relay for camera/viewer WebSockets over HTTPS."
+readme = "README-setup.md"
+requires-python = ">=3.10"
+dependencies = [
+    "aiofiles",
+    "fastapi",
+    "jinja2",
+    "uvicorn[standard]",
+]
+
+[tool.setuptools]
+py-modules = ["server"]

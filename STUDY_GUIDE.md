@@ -37,6 +37,15 @@ A self-hosted baby monitor web app. A MacBook runs a Python server on the home W
 - **Tradeoff**: One-time setup per iOS device (profile install + trust toggle in Settings).
 - **Analogy**: Like saving a friend's contact by name instead of memorizing a phone number that might change.
 
+### UV + `pyproject.toml`
+
+- **Chosen**: Dependencies live in `pyproject.toml` (PEP 621). `run.sh` calls `uv sync` so the lockfile and venv stay aligned with that file. There is no separate `requirements.txt` in the repo.
+- **Alternative**: `pip install -e .` with the same `pyproject.toml`, without UV.
+- **Why this**: UV resolves and installs quickly; `pyproject.toml` is the single place to declare the app name, Python version, and runtime packages for tooling and CI.
+- **Tradeoff**: Contributors need `uv` (or they can still use `pip install -e .` against the same `pyproject.toml`).
+- **Gotcha**: `uv pip sync` on a hand-written requirements file that only lists direct dependencies removes transitive packages (for example `starlette`), which breaks imports. Prefer `uv sync`, or a **compiled** lock-style requirements file that lists every package.
+- **Analogy**: Like a `package.json` for Python — one file lists what the app needs to run.
+
 ### Python FastAPI over Node.js
 
 - **Chosen**: Python + FastAPI + Uvicorn.
@@ -64,10 +73,13 @@ A self-hosted baby monitor web app. A MacBook runs a Python server on the home W
 
 ### server.py
 
-Runs the FastAPI app. Three main responsibilities:
+Runs the FastAPI app. Four main responsibilities:
 1. WebSocket endpoint `/ws/camera` — receives binary chunks from the camera, caches the first chunk (init segment), fans out every chunk to all viewer sockets.
 2. WebSocket endpoint `/ws/viewer` — sends the cached init segment immediately (so late joiners can decode), then streams all subsequent chunks.
 3. HTTP endpoint `/setup/ca.pem` — runs `mkcert -CAROOT` to find the CA file location, serves it for download so iOS devices can trust it.
+4. HTML page endpoints (/, /viewer.html, /camera.html, /slowviewer.html, /setup.html) — render Jinja2 templates with the `baby_name` environment variable injected.
+
+The server reads the `BABY_NAME` environment variable (defaults to "BabyTime") and passes it to all HTML templates. This allows the user to customize the app title via `BABY_NAME=Emma python server.py`.
 
 Example: Camera sends 50KB chunk → server loops over 3 connected viewers → sends 50KB to each.
 
@@ -95,7 +107,19 @@ A self-contained iOS setup guide. Fetches `/api/status` to detect if the cert is
 
 ### static/index.html
 
-Checks `localStorage` for a saved role. If found, redirects immediately. Otherwise shows two buttons. Saves the choice so the user only picks once.
+Checks `localStorage` for a saved role. If found, redirects immediately. Otherwise shows three role cards (Camera, Viewer, Slow Viewer). Saves the choice so the user only picks once.
+
+### static/menubar.html
+
+A shared Jinja2 template that is included at the top of every page (via `{% include 'menubar.html' %}`). Displays the baby name on the left and a home button (🏠) on the right. The home button clears the stored role from `localStorage` and navigates back to the index page, allowing the user to select a different role.
+
+Example: If `baby_name='Emma'`, every page shows "Emma" in the top-left corner and a home button in the top-right.
+
+### Jinja2 Templating & Baby Name Configuration
+
+All HTML pages are now Jinja2 templates, not static files. The server renders each template with the `baby_name` variable injected. This variable comes from the `BABY_NAME` environment variable, defaulting to "BabyTime" if not set.
+
+Example: `BABY_NAME=Emma python server.py` → all pages display "Emma" in the menu bar and page titles.
 
 ---
 

@@ -1,3 +1,14 @@
+Metadata-Version: 2.4
+Name: babytime
+Version: 0.1.0
+Summary: Self-hosted baby monitor: FastAPI relay for camera/viewer WebSockets over HTTPS.
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: aiofiles
+Requires-Dist: fastapi
+Requires-Dist: jinja2
+Requires-Dist: uvicorn[standard]
+
 # BabyTime — Setup Guide
 
 A local baby monitor. Runs on your MacBook; old iPads and phones connect over home WiFi.

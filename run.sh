@@ -21,6 +21,8 @@ fi
 
 # Make sure uv-installed uv is on PATH if it was just installed.
 export PATH="$HOME/.local/bin:$PATH"
+uv sync
+
 
 # ── 2. Check SSL certificates ─────────────────────────────────────────────────
 
