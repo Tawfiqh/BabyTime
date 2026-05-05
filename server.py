@@ -1,15 +1,26 @@
 import argparse
+import os
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from dotenv import load_dotenv
+
+load_dotenv()  # reads variables from a .env file and sets them in os.environ
 
 app = FastAPI()
+
+# Read baby name from environment variable
+baby_name = os.getenv("BABY_NAME", "BabyTime")
+
+# Set up Jinja2 templating
+templates = Jinja2Templates(directory="static")
 
 # ── State ──────────────────────────────────────────────────────────────────────
 
@@ -145,6 +156,29 @@ async def serve_ca_cert():
         )
 
 
+# ── HTML Page Routes (render with Jinja2) ──────────────────────────────────────
+
+@app.get("/")
+async def index(request: Request):
+    return templates.TemplateResponse(request=request, name="index.html", context={"baby_name": baby_name})
+
+@app.get("/viewer.html")
+async def viewer(request: Request):
+    return templates.TemplateResponse(request=request, name="viewer.html", context={"baby_name": baby_name})
+
+@app.get("/camera.html")
+async def camera(request: Request):
+    return templates.TemplateResponse(request=request, name="camera.html", context={"baby_name": baby_name})
+
+@app.get("/slowviewer.html")
+async def slowviewer(request: Request):
+    return templates.TemplateResponse(request=request, name="slowviewer.html", context={"baby_name": baby_name})
+
+@app.get("/setup.html")
+async def setup(request: Request):
+    return templates.TemplateResponse(request=request, name="setup.html", context={"baby_name": baby_name})
+
+
 # ── Static Files ───────────────────────────────────────────────────────────────
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
@@ -181,10 +215,15 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    port_number = os.getenv("PORT_NUMBER", 8443)
     cert = Path("certs/cert.pem")
     key = Path("certs/key.pem")
 
-    if args.http:
+    if args.http or not cert.exists() or not key.exists():
+        if not cert.exists() or not key.exists():
+            print("ERROR: certs/cert.pem or certs/key.pem not found.", file=sys.stderr)
+            print("Run: bash install.sh   or   bash scripts/ensure-certs.sh", file=sys.stderr)
+
         print("BabyTime starting on http://0.0.0.0:8442 (HTTP — no TLS)")
         print("Local:   http://localhost:8442")
         lan = _guess_lan_ip()
@@ -197,23 +236,18 @@ if __name__ == "__main__":
             port=8442,
             reload=False,
         )
-    else:
-        if not cert.exists() or not key.exists():
-            print("ERROR: certs/cert.pem or certs/key.pem not found.", file=sys.stderr)
-            print("Run: bash install.sh   or   bash scripts/ensure-certs.sh", file=sys.stderr)
-            sys.exit(1)
 
-        print("BabyTime starting on https://0.0.0.0:8443")
-        print("Local:   https://localhost:8443")
-        lan = _guess_lan_ip()
-        if lan:
-            print(f"Network: https://{lan}:8443")
+    print(f"BabyTime starting on https://0.0.0.0:{port_number}")
+    print(f"Local:   https://localhost:{port_number}")
+    lan = _guess_lan_ip()
+    if lan:
+        print(f"Network: https://{lan}:{port_number}")
 
-        uvicorn.run(
-            "server:app",
-            host="0.0.0.0",
-            port=8443,
-            ssl_keyfile="certs/key.pem",
-            ssl_certfile="certs/cert.pem",
-            reload=False,
-        )
+    uvicorn.run(
+        "server:app",
+        host="0.0.0.0",
+        port=8443,
+        ssl_keyfile="certs/key.pem",
+        ssl_certfile="certs/cert.pem",
+        reload=False,
+    )

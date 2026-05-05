@@ -34,8 +34,8 @@ fi
 # uv skips packages that are already installed at the right version, so this
 # is fast and safe to re-run.
 
-echo "Syncing dependencies from requirements.txt..."
-uv pip install --python .venv/bin/python -r requirements.txt
+echo "Syncing dependencies (pyproject.toml / uv.lock)..."
+uv sync
 
 # ── 4. TLS certs (mkcert if available, else OpenSSL; do not fail whole install) ─
 if ! bash "$SCRIPT_DIR/scripts/ensure-certs.sh"; then

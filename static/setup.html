@@ -3,206 +3,85 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>BabyTime Setup</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #0f0f14;
-      color: #f0f0f0;
-      min-height: 100dvh;
-      padding: 2rem 1.2rem;
-      max-width: 600px;
-      margin: 0 auto;
-    }
-
-    h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.3rem; }
-    .subtitle { color: #888; font-size: 0.9rem; margin-bottom: 2rem; }
-
-    /* Trust status banner */
-    #trust-banner {
-      border-radius: 0.8rem;
-      padding: 1rem 1.2rem;
-      margin-bottom: 1.8rem;
-      font-size: 0.9rem;
-      line-height: 1.5;
-    }
-    #trust-banner.trusted {
-      background: #1a2e1a;
-      border: 1px solid #3a6a3a;
-      color: #7dc97d;
-    }
-    #trust-banner.untrusted {
-      background: #2a1a0f;
-      border: 1px solid #6a3a1a;
-      color: #d48a4a;
-    }
-
-    .step {
-      background: #1a1a24;
-      border: 1px solid #2a2a38;
-      border-radius: 0.9rem;
-      padding: 1.2rem 1.3rem;
-      margin-bottom: 1rem;
-    }
-    .step-header {
-      display: flex;
-      align-items: center;
-      gap: 0.7rem;
-      margin-bottom: 0.6rem;
-    }
-    .step-num {
-      background: #2a2a40;
-      color: #9090c0;
-      width: 1.8rem;
-      height: 1.8rem;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.8rem;
-      font-weight: 700;
-      flex-shrink: 0;
-    }
-    .step-title { font-weight: 600; font-size: 0.95rem; }
-    .step p { color: #aaa; font-size: 0.85rem; line-height: 1.5; }
-    .step code {
-      background: #2a2a3a;
-      padding: 0.1em 0.4em;
-      border-radius: 0.3em;
-      font-size: 0.82rem;
-      color: #c0c0e0;
-    }
-
-    .download-btn {
-      display: block;
-      width: 100%;
-      margin-top: 1rem;
-      padding: 0.9rem;
-      background: #2a4a7a;
-      border: none;
-      border-radius: 0.7rem;
-      color: #fff;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      text-align: center;
-      text-decoration: none;
-      transition: background 0.15s;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .download-btn:hover { background: #3a5a9a; }
-
-    .note {
-      background: #1a1a1a;
-      border-left: 3px solid #555;
-      padding: 0.7rem 1rem;
-      border-radius: 0 0.5rem 0.5rem 0;
-      font-size: 0.82rem;
-      color: #888;
-      margin-top: 0.8rem;
-      line-height: 1.5;
-    }
-
-    .go-btn {
-      display: block;
-      width: 100%;
-      margin-top: 1.5rem;
-      padding: 1rem;
-      background: #2a5a2a;
-      border: none;
-      border-radius: 0.8rem;
-      color: #7dc97d;
-      font-size: 1.1rem;
-      font-weight: 700;
-      cursor: pointer;
-      text-align: center;
-      text-decoration: none;
-      transition: background 0.15s;
-    }
-    .go-btn:hover { background: #3a7a3a; }
-
-    .footer {
-      margin-top: 2rem;
-      font-size: 0.78rem;
-      color: #444;
-      text-align: center;
-    }
-  </style>
+  <title>{{ baby_name }} – Setup</title>
+  <link rel="stylesheet" href="base.css?v=1">
 </head>
 <body>
-  <h1>📱 Device Setup</h1>
-  <p class="subtitle">One-time setup to trust BabyTime's local certificate</p>
+  {% include 'menubar.html' %}
 
-  <div id="trust-banner" class="untrusted">
-    ⚠️ This device does not yet trust the BabyTime certificate.<br>
-    Follow the steps below — it only takes a minute.
-  </div>
+  <div class="setup-container">
+    <h1>📱 Device Setup</h1>
+    <p class="subtitle">One-time setup to trust BabyTime's local certificate</p>
 
-  <div class="step">
-    <div class="step-header">
-      <div class="step-num">1</div>
-      <div class="step-title">Download the certificate</div>
+    <div id="trust-banner" class="untrusted">
+      ⚠️ This device does not yet trust the BabyTime certificate.<br>
+      Follow the steps below — it only takes a minute.
     </div>
-    <p>Tap the button below to download the BabyTime local CA certificate.</p>
-    <a class="download-btn" href="/setup/ca.pem" download="BabyTimeCA.pem">
-      ⬇️ Download Certificate
-    </a>
-    <div class="note">
-      After tapping, iOS will say <strong>"Profile Downloaded"</strong> in a notification at the top of the screen.
-    </div>
-  </div>
 
-  <div class="step">
-    <div class="step-header">
-      <div class="step-num">2</div>
-      <div class="step-title">Install the profile</div>
+    <div class="step">
+      <div class="step-header">
+        <div class="step-num">1</div>
+        <div class="step-title">Download the certificate</div>
+      </div>
+      <p>Tap the button below to download the BabyTime local CA certificate.</p>
+      <a class="download-btn" href="/setup/ca.pem" download="BabyTimeCA.pem">
+        ⬇️ Download Certificate
+      </a>
+      <div class="note">
+        After tapping, iOS will say <strong>"Profile Downloaded"</strong> in a notification at the top of the screen.
+      </div>
     </div>
-    <p>
-      Open <strong>Settings</strong> →
-      <strong>General</strong> →
-      <strong>VPN &amp; Device Management</strong><br><br>
-      Tap the <strong>mkcert</strong> profile, then tap <strong>Install</strong>.
-      Enter your passcode if prompted.
-    </p>
-  </div>
 
-  <div class="step">
-    <div class="step-header">
-      <div class="step-num">3</div>
-      <div class="step-title">Enable full trust <em>(critical — easy to miss)</em></div>
+    <div class="step">
+      <div class="step-header">
+        <div class="step-num">2</div>
+        <div class="step-title">Install the profile</div>
+      </div>
+      <p>
+        Open <strong>Settings</strong> →
+        <strong>General</strong> →
+        <strong>VPN &amp; Device Management</strong><br><br>
+        Tap the <strong>mkcert</strong> profile, then tap <strong>Install</strong>.
+        Enter your passcode if prompted.
+      </p>
     </div>
-    <p>
-      Open <strong>Settings</strong> →
-      <strong>General</strong> →
-      <strong>About</strong> →
-      <strong>Certificate Trust Settings</strong><br><br>
-      Toggle <strong>ON</strong> the mkcert certificate under
-      <em>"Enable Full Trust For Root Certificates"</em>.
-    </p>
-    <div class="note">
-      Without this step, iOS installs the certificate but still doesn't trust it for HTTPS.
-      The camera will still be blocked.
+
+    <div class="step">
+      <div class="step-header">
+        <div class="step-num">3</div>
+        <div class="step-title">Enable full trust <em>(critical — easy to miss)</em></div>
+      </div>
+      <p>
+        Open <strong>Settings</strong> →
+        <strong>General</strong> →
+        <strong>About</strong> →
+        <strong>Certificate Trust Settings</strong><br><br>
+        Toggle <strong>ON</strong> the mkcert certificate under
+        <em>"Enable Full Trust For Root Certificates"</em>.
+      </p>
+      <div class="note">
+        Without this step, iOS installs the certificate but still doesn't trust it for HTTPS.
+        The camera will still be blocked.
+      </div>
     </div>
-  </div>
 
-  <div class="step">
-    <div class="step-header">
-      <div class="step-num">4</div>
-      <div class="step-title">Reload this page</div>
+    <div class="step">
+      <div class="step-header">
+        <div class="step-num">4</div>
+        <div class="step-title">Reload this page</div>
+      </div>
+      <p>
+        Come back to Safari and reload this page.
+        The warning banner above should turn green. ✓
+      </p>
     </div>
-    <p>
-      Come back to Safari and reload this page.
-      The warning banner above should turn green. ✓
-    </p>
-  </div>
 
-  <a class="go-btn" href="/">→ Go to BabyTime</a>
+    <a class="go-btn" href="/">→ Go to BabyTime</a>
 
-  <div class="footer">
-    This certificate is only trusted on your home network.<br>
-    It cannot be used to access the internet.
+    <div class="footer">
+      This certificate is only trusted on your home network.<br>
+      It cannot be used to access the internet.
+    </div>
   </div>
 
   <script>

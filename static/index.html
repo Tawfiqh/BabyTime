@@ -3,101 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>BabyTime</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #0f0f14;
-      color: #f0f0f0;
-      min-height: 100dvh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem;
-    }
-
-    .logo { font-size: 3rem; margin-bottom: 0.5rem; }
-    h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.4rem; }
-    .subtitle { color: #888; margin-bottom: 3rem; font-size: 0.95rem; }
-
-    .cards {
-      display: flex;
-      gap: 1.2rem;
-      flex-wrap: wrap;
-      justify-content: center;
-      width: 100%;
-      max-width: 500px;
-    }
-
-    .card {
-      flex: 1;
-      min-width: 180px;
-      background: #1a1a24;
-      border: 1px solid #2a2a38;
-      border-radius: 1.2rem;
-      padding: 2rem 1.5rem;
-      cursor: pointer;
-      text-align: center;
-      transition: background 0.15s, border-color 0.15s, transform 0.1s;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .card:hover { background: #22223a; border-color: #4a4a6a; }
-    .card:active { transform: scale(0.97); }
-
-    .card-icon { font-size: 2.4rem; margin-bottom: 0.8rem; }
-    .card-title { font-size: 1.2rem; font-weight: 600; margin-bottom: 0.4rem; }
-    .card-desc { font-size: 0.82rem; color: #888; line-height: 1.4; }
-
-    .card.camera { border-color: #3a5a3a; }
-    .card.camera:hover { background: #1a2a1a; border-color: #5a8a5a; }
-
-    .card.viewer { border-color: #2a3a5a; }
-    .card.viewer:hover { background: #1a1a2a; border-color: #4a6a9a; }
-
-    .card.slowviewer { border-color: #3a3a5a; }
-    .card.slowviewer:hover { background: #1a1a2a; border-color: #5a5a9a; }
-
-    .footer {
-      margin-top: 3rem;
-      font-size: 0.78rem;
-      color: #555;
-      text-align: center;
-    }
-
-    .footer a { color: #667; text-decoration: none; }
-    .footer a:hover { color: #99a; }
-  </style>
+  <title>{{ baby_name }}</title>
+  <link rel="stylesheet" href="base.css?v=1">
 </head>
 <body>
-  <div class="logo">👶</div>
-  <h1>BabyTime</h1>
-  <p class="subtitle">Local baby monitor — choose this device's role</p>
+  {% include 'menubar.html' %}
 
-  <div class="cards">
-    <div class="card camera" onclick="selectRole('camera')">
-      <div class="card-icon">📷</div>
-      <div class="card-title">Camera</div>
-      <div class="card-desc">Place this device in the baby's room to stream video and audio</div>
-    </div>
-    <div class="card viewer" onclick="selectRole('viewer')">
-      <div class="card-icon">📺</div>
-      <div class="card-title">Viewer</div>
-      <div class="card-desc">Watch the camera feed from wherever you are in the house</div>
-    </div>
-    <div class="card slowviewer" onclick="selectRole('slowviewer')">
-      <div class="card-icon">📱</div>
-      <div class="card-title">Slow Viewer</div>
-      <div class="card-desc">Watch periodic snapshots with audio levels</div>
-    </div>
-  </div>
+  <div class="page-center">
+    <div class="logo">👶</div>
+    <h1>{{ baby_name }}</h1>
+    <p class="subtitle">Local baby monitor — choose this device's role</p>
 
-  <div class="footer">
-    <a href="/setup.html">First time? Set up this device →</a>
+    <div class="cards">
+      <div class="card camera" onclick="selectRole('camera')">
+        <div class="card-icon">📷</div>
+        <div class="card-title">Camera</div>
+        <div class="card-desc">Place this device in the baby's room to stream video and audio</div>
+      </div>
+      <div class="card viewer" onclick="selectRole('viewer')">
+        <div class="card-icon">📺</div>
+        <div class="card-title">Viewer</div>
+        <div class="card-desc">Watch the camera feed from wherever you are in the house</div>
+      </div>
+      <div class="card slowviewer" onclick="selectRole('slowviewer')">
+        <div class="card-icon">📱</div>
+        <div class="card-title">Slow Viewer</div>
+        <div class="card-desc">Watch periodic snapshots with audio levels</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <a href="/setup.html">First time? Set up this device →</a>
+    </div>
   </div>
 
   <script>

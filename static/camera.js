@@ -167,13 +167,6 @@ function toggleMic() {
     document.querySelector('#controls button').textContent = micEnabled ? '🎤 Mute mic' : '🔇 Unmute mic';
 }
 
-function switchRole() {
-    if (confirm('Switch this device to Viewer?')) {
-        localStorage.setItem('babyTimeRole', 'viewer');
-        window.location.href = '/viewer.html';
-    }
-}
-
 function initAudioMeter() {
     console.log('[camera.js] initAudioMeter called');
     console.log('[camera.js] stream exists:', !!stream);

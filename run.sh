@@ -45,6 +45,8 @@ elif ! .venv/bin/python -c "import fastapi, uvicorn" &>/dev/null; then
 fi
 
 export PATH="$HOME/.local/bin:$PATH"
+uv sync
+
 
 # ── 2. TLS certificates (skip entirely in --http mode) ───────────────────────
 

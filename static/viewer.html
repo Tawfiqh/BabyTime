@@ -4,10 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>BabyTime – Viewer</title>
-  <style>
-    @import "base.css";
-  </style>
+  <title>{{ baby_name }} – Viewer</title>
+  <link rel="stylesheet" href="base.css?v=1">
 
   <style>
     #overlay {
@@ -109,8 +107,7 @@
 </head>
 
 <body>
-  <h1> BabyTime</h1>
-
+  {% include 'menubar.html' %}
 
   <div id="preview-container">
     <div id="hud">
@@ -121,23 +118,19 @@
       </div>
     </div>
 
-
     <video id="stream" autoplay playsinline disableRemotePlayback=true muted>
       <!-- disble remote playback is required for iOS to send the video start event -->
       <!-- Muted is required for autiplay -->
     </video>
   </div>
 
-
   <div id="overlay">
     <div id="overlay-icon">👶</div>
     <div id="overlay-msg">Waiting for camera…</div>
   </div>
 
-
   <div id="controls">
     <button id="unmute-btn" onclick="unmute()">🔊 Tap to unmute</button>
-    <button onclick="switchRole()">Switch role</button>
   </div>
 
   <div id="mimeSupportPanel" aria-label="ManagedMediaSource MIME type support" style="display: none;">

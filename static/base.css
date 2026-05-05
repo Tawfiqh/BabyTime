@@ -1,3 +1,24 @@
+/* Color Palette */
+:root {
+    --bg-dark: #0f0f14;
+    --bg-darker: #000;
+    --bg-card: #1a1a24;
+    --bg-panel: #2a2a40;
+    --border-color: #2a2a38;
+    --text-primary: #f0f0f0;
+    --text-secondary: #aaa;
+    --text-muted: #888;
+    --text-code: #c0c0e0;
+    --status-live: #4caf50;
+    --status-error: #f44336;
+    --status-warning: #ff9800;
+    --color-camera: #3a5a3a;
+    --color-viewer: #2a3a5a;
+    --color-slowviewer: #3a3a5a;
+    --button-primary: #2a4a7a;
+    --button-success: #2a5a2a;
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -6,13 +27,50 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: #000;
-    color: #f0f0f0;
+    background: var(--bg-darker);
+    color: var(--text-primary);
     min-height: 100dvh;
     display: flex;
     flex-direction: column;
+    padding-top: 60px;
 }
 
+/* Menu Bar */
+.menubar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent);
+    display: flex;
+    align-items: center;
+
+    padding: 0 1.5rem;
+    z-index: 1000;
+}
+
+.menubar-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.menubar-home-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    transition: transform 0.15s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.menubar-home-btn:active {
+    transform: scale(0.9);
+}
+
+/* Main Content Layout */
 #preview,
 #stream {
     width: 100%;
@@ -167,4 +225,252 @@ button:hover {
 #error-box a {
     color: #7af;
     font-size: 0.85rem;
+}
+
+/* Index Page Styles */
+.page-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100dvh;
+    padding: 2rem;
+}
+
+.logo {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+}
+
+h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+}
+
+.subtitle {
+    color: var(--text-muted);
+    margin-bottom: 3rem;
+    font-size: 0.95rem;
+}
+
+.cards {
+    display: flex;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    max-width: 500px;
+}
+
+.card {
+    flex: 1;
+    min-width: 180px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 1.2rem;
+    padding: 2rem 1.5rem;
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.card:hover {
+    background: #22223a;
+    border-color: #4a4a6a;
+}
+
+.card:active {
+    transform: scale(0.97);
+}
+
+.card-icon {
+    font-size: 2.4rem;
+    margin-bottom: 0.8rem;
+}
+
+.card-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+}
+
+.card-desc {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.card.camera {
+    border-color: var(--color-camera);
+}
+
+.card.camera:hover {
+    background: #1a2a1a;
+    border-color: #5a8a5a;
+}
+
+.card.viewer {
+    border-color: var(--color-viewer);
+}
+
+.card.viewer:hover {
+    background: #1a1a2a;
+    border-color: #4a6a9a;
+}
+
+.card.slowviewer {
+    border-color: var(--color-slowviewer);
+}
+
+.card.slowviewer:hover {
+    background: #1a1a2a;
+    border-color: #5a5a9a;
+}
+
+.footer {
+    margin-top: 3rem;
+    font-size: 0.78rem;
+    color: #555;
+    text-align: center;
+}
+
+.footer a {
+    color: #667;
+    text-decoration: none;
+}
+
+.footer a:hover {
+    color: #99a;
+}
+
+/* Setup Page Styles */
+.setup-container {
+    padding: 2rem 1.2rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+#trust-banner {
+    border-radius: 0.8rem;
+    padding: 1rem 1.2rem;
+    margin-bottom: 1.8rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+#trust-banner.trusted {
+    background: #1a2e1a;
+    border: 1px solid #3a6a3a;
+    color: #7dc97d;
+}
+
+#trust-banner.untrusted {
+    background: #2a1a0f;
+    border: 1px solid #6a3a1a;
+    color: #d48a4a;
+}
+
+.step {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 0.9rem;
+    padding: 1.2rem 1.3rem;
+    margin-bottom: 1rem;
+}
+
+.step-header {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin-bottom: 0.6rem;
+}
+
+.step-num {
+    background: var(--bg-panel);
+    color: #9090c0;
+    width: 1.8rem;
+    height: 1.8rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.step-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.step p {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.step code {
+    background: #2a2a3a;
+    padding: 0.1em 0.4em;
+    border-radius: 0.3em;
+    font-size: 0.82rem;
+    color: var(--text-code);
+}
+
+.download-btn {
+    display: block;
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.9rem;
+    background: var(--button-primary);
+    border: none;
+    border-radius: 0.7rem;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.download-btn:hover {
+    background: #3a5a9a;
+}
+
+.note {
+    background: #1a1a1a;
+    border-left: 3px solid #555;
+    padding: 0.7rem 1rem;
+    border-radius: 0 0.5rem 0.5rem 0;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin-top: 0.8rem;
+    line-height: 1.5;
+}
+
+.go-btn {
+    display: block;
+    width: 100%;
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: var(--button-success);
+    border: none;
+    border-radius: 0.8rem;
+    color: #7dc97d;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    transition: background 0.15s;
+}
+
+.go-btn:hover {
+    background: #3a7a3a;
 }

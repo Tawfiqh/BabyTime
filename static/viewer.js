@@ -347,13 +347,6 @@ function unmute() {
   unmuteBtn.classList.remove('visible');
 }
 
-function switchRole() {
-  if (confirm('Switch this device to Camera?')) {
-    localStorage.setItem('babyTimeRole', 'camera');
-    window.location.href = '/camera.html';
-  }
-}
-
 // ==============================
 // Audio Meter
 // ==============================
