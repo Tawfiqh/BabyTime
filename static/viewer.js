@@ -5,8 +5,6 @@ const video = document.getElementById('stream');
 const overlay = document.getElementById('overlay');
 const overlayMsg = document.getElementById('overlay-msg');
 const overlayIcon = document.getElementById('overlay-icon');
-const dot = document.getElementById('status-dot');
-const statusText = document.getElementById('status-text');
 const unmuteBtn = document.getElementById('unmute-btn');
 const soundBarsContainer = document.getElementById('sound-bars');
 const mimeSupportPanel = document.getElementById('mimeSupportPanel');
@@ -21,9 +19,6 @@ let hasSeekedToLive = false;
 let audioVisualizer = null;
 let viewerAudioChart = null;
 let viewerAudioPollTimer = null;
-
-/** ws:// on HTTP (e.g. --http local test); wss:// on HTTPS */
-const WS_SCHEME = location.protocol === 'https:' ? 'wss:' : 'ws:';
 
 // ==============================
 // Setup mime types
@@ -62,13 +57,8 @@ function getSupportedMime() {
 }
 
 // ==============================
-// Setup status & Overlay - TBC refactor to different file
+// Overlay
 // ==============================
-function setStatus(state, text) {
-  dot.className = state;
-  statusText.textContent = text;
-}
-
 function showOverlay(icon, msg) {
   overlayIcon.textContent = icon;
   overlayMsg.textContent = msg;
@@ -352,23 +342,10 @@ function unmute() {
 }
 
 // ==============================
-// Audio Level Polling (mirrors slow viewer)
+// Audio Level Polling
 // ==============================
-async function fetchViewerAudioLevel() {
-  try {
-    const res = await fetch('/api/camera/audio-level');
-    if (!res.ok) return;
-    const data = await res.json();
-
-    document.getElementById('rms-bar').style.width = (data.rms / 255 * 100) + '%';
-    document.getElementById('rms-value').textContent = data.rms;
-    document.getElementById('peak-bar').style.width = (data.peak / 255 * 100) + '%';
-    document.getElementById('peak-value').textContent = data.peak;
-
-    viewerAudioChart.push(data.rms, data.peak, new Date(data.timestamp));
-  } catch (err) {
-    console.error('[viewer.js] Audio level fetch failed:', err);
-  }
+function fetchViewerAudioLevel() {
+  return fetchAudioLevel(viewerAudioChart);
 }
 
 function startViewerAudioPolling() {

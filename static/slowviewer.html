@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="base.css?v=4">
   <script src="/chart.umd.min.js"></script>
   <script src="/audioChart.js?v=1"></script>
+  <script src="/shared-utils.js?v=1"></script>
 </head>
 
 <body>
@@ -29,22 +30,7 @@
 
     <div id="fetch-status">Updated: never</div>
 
-    <div class="audio-level-display">
-      <div class="audio-bar">
-        <div class="audio-bar-label">RMS</div>
-        <div class="audio-bar-container">
-          <div class="audio-bar-fill" id="rms-bar"></div>
-        </div>
-        <div class="audio-bar-value" id="rms-value">0</div>
-      </div>
-      <div class="audio-bar">
-        <div class="audio-bar-label">Peak</div>
-        <div class="audio-bar-container">
-          <div class="audio-bar-fill" id="peak-bar"></div>
-        </div>
-        <div class="audio-bar-value" id="peak-value">0</div>
-      </div>
-    </div>
+    {% include 'audio_level_bars.html' %}
 
   </div>
 

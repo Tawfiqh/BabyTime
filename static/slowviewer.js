@@ -1,15 +1,8 @@
 const snapshotImage = document.getElementById('snapshot-image');
-const statusDot = document.getElementById('status-dot');
-const statusText = document.getElementById('status-text');
 const fetchStatus = document.getElementById('fetch-status');
 
 let fetchTimer = null;
 let audioChart = null;
-
-function setStatus(state, text) {
-  statusDot.className = state;
-  statusText.textContent = text;
-}
 
 async function fetchSnapshot() {
   try {
@@ -33,36 +26,20 @@ async function fetchSnapshot() {
   }
 }
 
-async function fetchAudioLevel() {
-  try {
-    const res = await fetch('/api/camera/audio-level');
-    if (!res.ok) return;
+function updateTimestamp(data) {
+  fetchStatus.textContent = `Updated Audio Reading: ${new Date(data.timestamp).toLocaleTimeString()}`;
+}
 
-    const data = await res.json();
-    const rmsPercent = (data.rms / 255) * 100;
-    const peakPercent = (data.peak / 255) * 100;
-
-    document.getElementById('rms-bar').style.width = rmsPercent + '%';
-    document.getElementById('rms-value').textContent = data.rms;
-
-    document.getElementById('peak-bar').style.width = peakPercent + '%';
-    document.getElementById('peak-value').textContent = data.peak;
-
-    const ts = new Date(data.timestamp);
-    fetchStatus.textContent = `Updated Audio Reading: ${ts.toLocaleTimeString()}`;
-    audioChart.push(data.rms, data.peak, ts);
-  } catch (err) {
-    console.error('Audio level fetch failed:', err);
-  }
+function fetchAudioLevelAndTimestamp() {
+  return fetchAudioLevel(audioChart, { onFetched: updateTimestamp });
 }
 
 async function pollData() {
-  // Fetch immediately on load, then every 5 seconds
-  await Promise.all([fetchSnapshot(), fetchAudioLevel()]);
+  await Promise.all([fetchSnapshot(), fetchAudioLevelAndTimestamp()]);
 
   clearInterval(fetchTimer);
   fetchTimer = setInterval(() => {
-    Promise.all([fetchSnapshot(), fetchAudioLevel()]);
+    Promise.all([fetchSnapshot(), fetchAudioLevelAndTimestamp()]);
   }, 5000);
 }
 

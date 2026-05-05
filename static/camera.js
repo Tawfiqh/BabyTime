@@ -1,13 +1,7 @@
-
 const preview = document.getElementById('preview');
-const dot = document.getElementById('status-dot');
-const statusText = document.getElementById('status-text');
 const viewerCount = document.getElementById('viewer-count');
 const errorBox = document.getElementById('error-box');
 const soundBarsContainer = document.getElementById('sound-bars');
-
-/** ws:// on HTTP (e.g. --http local test); wss:// on HTTPS */
-const WS_SCHEME = location.protocol === 'https:' ? 'wss:' : 'ws:';
 
 let stream = null;
 let ws = null;
@@ -17,11 +11,6 @@ let reconnectTimer = null;
 let viewerPollTimer = null;
 let audioVisualizer = null;
 let snapshotTimer = null;
-
-function setStatus(state, text) {
-    dot.className = state;
-    statusText.textContent = text;
-}
 
 function showError(title, msg) {
     document.getElementById('error-title').textContent = title;
