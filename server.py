@@ -204,6 +204,14 @@ def _guess_lan_ip() -> Optional[str]:
     return None
 
 
+def _print_startup_info(scheme: str, port: int) -> None:
+    print(f"BabyTime starting on {scheme}://0.0.0.0:{port}")
+    print(f"Local:   {scheme}://localhost:{port}")
+    lan = _guess_lan_ip()
+    if lan:
+        print(f"Network: {scheme}://{lan}:{port}")
+
+
 if __name__ == "__main__":
     import uvicorn
 
@@ -215,38 +223,25 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    port_number = os.getenv("PORT_NUMBER", 8443)
     cert = Path("certs/cert.pem")
     key = Path("certs/key.pem")
 
-    if args.http or not cert.exists() or not key.exists():
-        if not cert.exists() or not key.exists():
-            print("ERROR: certs/cert.pem or certs/key.pem not found.", file=sys.stderr)
-            print("Run: bash install.sh   or   bash scripts/ensure-certs.sh", file=sys.stderr)
+    if not args.http and (not cert.exists() or not key.exists()):
+        print("ERROR: certs/cert.pem or certs/key.pem not found.", file=sys.stderr)
+        print("Run: bash install.sh   or   bash scripts/ensure-certs.sh", file=sys.stderr)
+        sys.exit(1)
 
-        print("BabyTime starting on http://0.0.0.0:8442 (HTTP — no TLS)")
-        print("Local:   http://localhost:8442")
-        lan = _guess_lan_ip()
-        if lan:
-            print(f"Network: http://{lan}:8442")
+    if args.http:
+        _print_startup_info("http", 8442)
         print("Tip: getUserMedia works on http://localhost; LAN HTTP may block camera.")
-        uvicorn.run(
-            "server:app",
-            host="0.0.0.0",
-            port=8442,
-            reload=False,
-        )
+        uvicorn.run("server:app", host="0.0.0.0", port=8442, reload=False)
+        sys.exit(0)
 
-    print(f"BabyTime starting on https://0.0.0.0:{port_number}")
-    print(f"Local:   https://localhost:{port_number}")
-    lan = _guess_lan_ip()
-    if lan:
-        print(f"Network: https://{lan}:{port_number}")
-
+    _print_startup_info("https", int(os.getenv("PORT_NUMBER", "8443")))
     uvicorn.run(
         "server:app",
         host="0.0.0.0",
-        port=8443,
+        port=int(os.getenv("PORT_NUMBER", "8443")),
         ssl_keyfile="certs/key.pem",
         ssl_certfile="certs/cert.pem",
         reload=False,

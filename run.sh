@@ -62,47 +62,12 @@ elif [ ! -f "certs/cert.pem" ] || [ ! -f "certs/key.pem" ]; then
   fi
 fi
 
-# ── 3. Print access URLs ──────────────────────────────────────────────────────
+# ── 3. Start the server ───────────────────────────────────────────────────────
 
-LAN_IP=""
-if command -v ipconfig &>/dev/null; then
-  LAN_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "")
-fi
+# The shell already ate --http in the option parser; forward it to server.py explicitly.
+(( USE_HTTP )) && PY_ARGS=(--http "${PY_ARGS[@]}")
 
-echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-if (( USE_HTTP )); then
-  echo "  BabyTime starting on port 8442 (HTTP — local testing)"
-  echo ""
-  echo "  This machine:  http://localhost:8442"
-  if [ -n "$LAN_IP" ]; then
-    echo "  Network:   http://${LAN_IP}:8442"
-    echo ""
-    echo "  Camera/mic on non-localhost may be blocked; use localhost or HTTPS for real devices."
-  fi
-else
-  echo "  BabyTime starting on port 8443 (HTTPS)"
-  echo ""
-  echo "  This machine:  https://localhost:8443"
-  if [ -n "$LAN_IP" ]; then
-    echo "  Network:   https://${LAN_IP}:8443"
-    echo ""
-    echo "  First time on iOS? Visit https://${LAN_IP}:8443/setup.html"
-  fi
-fi
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
-
-# ── 4. Start the server ───────────────────────────────────────────────────────
-
-if (( USE_HTTP )); then
-  if [[ ${#PY_ARGS[@]} -gt 0 ]]; then
-    exec .venv/bin/python server.py --http "${PY_ARGS[@]}"
-  else
-    exec .venv/bin/python server.py --http
-  fi
-elif [[ ${#PY_ARGS[@]} -gt 0 ]]; then
-  exec .venv/bin/python server.py "${PY_ARGS[@]}"
-else
-  exec .venv/bin/python server.py
-fi
+# Pass through any extra CLI args to server.py, or call it with no extras if none remain.
+[[ ${#PY_ARGS[@]} -gt 0 ]] \
+  && exec .venv/bin/python server.py "${PY_ARGS[@]}" \
+  || exec .venv/bin/python server.py
